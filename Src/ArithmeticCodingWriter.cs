@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 using System.IO;
 
-namespace RT.Util
+namespace RT.Util.Streams
 {
     public class ArithmeticCodingWriter : Stream
     {
