@@ -5,6 +5,10 @@ using System.IO;
 
 namespace RT.Util.Streams
 {
+    /// <summary>
+    /// Provides a write-only stream that can compress data using Arithmetic Coding.
+    /// </summary>
+    /// <seealso cref="ArithmeticCodingReader"/>
     public class ArithmeticCodingWriter : Stream
     {
         private UInt64 high, low;
@@ -15,8 +19,19 @@ namespace RT.Util.Streams
         private byte curbyte;
         private int curbit;
 
+        /// <summary>
+        /// Encapsulates a symbol that represents the end of the stream. All other symbols are byte values.
+        /// </summary>
         public const int END_OF_STREAM = 256;
 
+        /// <summary>
+        /// Initialises an <see cref="ArithmeticCodingWriter"/> instance given a base stream and a set of byte probabilities.
+        /// </summary>
+        /// <param name="basestr">The base stream to which the compressed data will be written.</param>
+        /// <param name="probabilities">The probability of each byte occurring. Can be null, in which 
+        /// case all bytes are assumed to have the same probability. When reading the data back using
+        /// an <see cref="ArithmeticCodingReader"/>, the set of probabilities must be exactly the same.</param>
+        /// <remarks>The compressed data will not be complete until the stream is closed using <see cref="Close"/>().</remarks>
         public ArithmeticCodingWriter(Stream basestr, UInt64[] probabilities)
         {
             basestream = basestr;
@@ -40,6 +55,8 @@ namespace RT.Util.Streams
             curbit = 0;
             underflow = 0;
         }
+
+#pragma warning disable 1591    // Missing XML comment for publicly visible type or member
 
         public override bool CanRead { get { return false; } }
         public override bool CanSeek { get { return false; } }
@@ -152,5 +169,8 @@ namespace RT.Util.Streams
             basestream.Close();
             base.Close();
         }
+
+#pragma warning restore 1591    // Missing XML comment for publicly visible type or member
+
     }
 }

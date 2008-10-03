@@ -5,12 +5,12 @@ using System.IO;
 
 namespace RT.Util.Streams
 {
+    /// <summary>
+    /// Provides a read-only stream that can decompress data that was compressed using Arithmetic Coding.
+    /// </summary>
+    /// <seealso cref="ArithmeticCodingWriter"/>
     public class ArithmeticCodingReader : Stream
     {
-        public override bool CanRead { get { return true; } }
-        public override bool CanSeek { get { return false; } }
-        public override bool CanWrite { get { return false; } }
-
         private UInt64 high, low, code;
         private UInt64[] probs;
         private UInt64 totalprob;
@@ -18,8 +18,18 @@ namespace RT.Util.Streams
         private byte curbyte;
         private int curbit;
 
+        /// <summary>
+        /// Encapsulates a symbol that represents the end of the stream. All other symbols are byte values.
+        /// </summary>
         public const int END_OF_STREAM = 256;
 
+        /// <summary>
+        /// Initialises an <see cref="ArithmeticCodingReader"/> instance given a base stream and a set of byte probabilities.
+        /// </summary>
+        /// <param name="basestr">The base stream to which the compressed data will be written.</param>
+        /// <param name="probabilities">The probability of each byte occurring. Can be null, in which
+        /// case all bytes are assumed to have the same probability. The set of probabilities must be
+        /// exactly the same as the one used when the data was written using <see cref="ArithmeticCodingWriter"/>.</param>
         public ArithmeticCodingReader(Stream basestr, UInt64[] probabilities)
         {
             basestream = basestr;
@@ -48,6 +58,12 @@ namespace RT.Util.Streams
                 code |= ReadBit() ? (UInt64) 1 : (UInt64) 0;
             }
         }
+
+#pragma warning disable 1591    // Missing XML comment for publicly visible type or member
+
+        public override bool CanRead { get { return true; } }
+        public override bool CanSeek { get { return false; } }
+        public override bool CanWrite { get { return false; } }
 
         public override void Flush()
         {
@@ -162,4 +178,5 @@ namespace RT.Util.Streams
             return symbol;
         }
     }
+#pragma warning restore 1591    // Missing XML comment for publicly visible type or member
 }
