@@ -11,12 +11,12 @@ namespace RT.Util.Streams
     /// <seealso cref="ArithmeticCodingWriter"/>
     public class ArithmeticCodingReader : Stream
     {
-        private UInt64 high, low, code;
-        private UInt64[] probs;
-        private UInt64 totalprob;
-        private Stream basestream;
-        private byte curbyte;
-        private int curbit;
+        private UInt64 _high, _low, _code;
+        private UInt64[] _probs;
+        private UInt64 _totalprob;
+        private Stream _basestream;
+        private byte _curbyte;
+        private int _curbit;
 
         /// <summary>
         /// Encapsulates a symbol that represents the end of the stream. All other symbols are byte values.
@@ -32,30 +32,30 @@ namespace RT.Util.Streams
         /// exactly the same as the one used when the data was written using <see cref="ArithmeticCodingWriter"/>.</param>
         public ArithmeticCodingReader(Stream basestr, UInt64[] probabilities)
         {
-            basestream = basestr;
-            high = 0xffffffff;
-            low = 0;
+            _basestream = basestr;
+            _high = 0xffffffff;
+            _low = 0;
             if (probabilities == null)
             {
-                probs = new UInt64[257];
+                _probs = new UInt64[257];
                 for (int i = 0; i < 257; i++)
-                    probs[i] = 1;
-                totalprob = 257;
+                    _probs[i] = 1;
+                _totalprob = 257;
             }
             else
             {
-                probs = probabilities;
-                totalprob = 0;
-                for (int i = 0; i < probs.Length; i++)
-                    totalprob += probs[i];
+                _probs = probabilities;
+                _totalprob = 0;
+                for (int i = 0; i < _probs.Length; i++)
+                    _totalprob += _probs[i];
             }
-            curbyte = 0;
-            curbit = 8;
-            code = 0;
+            _curbyte = 0;
+            _curbit = 8;
+            _code = 0;
             for (int i = 0; i < 32; i++)
             {
-                code <<= 1;
-                code |= ReadBit() ? (UInt64) 1 : (UInt64) 0;
+                _code <<= 1;
+                _code |= ReadBit() ? (UInt64) 1 : (UInt64) 0;
             }
         }
 
@@ -67,7 +67,7 @@ namespace RT.Util.Streams
 
         public override void Flush()
         {
-            basestream.Flush();
+            _basestream.Flush();
         }
 
         public override long Length
@@ -123,56 +123,56 @@ namespace RT.Util.Streams
 
         public override void Close()
         {
-            basestream.Close();
+            _basestream.Close();
             base.Close();
         }
 
         private bool ReadBit()
         {
-            if (curbit > 7)
+            if (_curbit > 7)
             {
-                curbit = 0;
-                curbyte = (byte) basestream.ReadByte();
+                _curbit = 0;
+                _curbyte = (byte) _basestream.ReadByte();
             }
-            bool ret = (curbyte & (1 << curbit)) != 0;
-            curbit++;
+            bool ret = (_curbyte & (1 << _curbit)) != 0;
+            _curbit++;
             return ret;
         }
 
         private int ReadSymbol()
         {
             // Find out what the next symbol is from the contents of 'code'
-            UInt64 pos = ((code-low+1) * totalprob - 1)/(high-low+1);
+            UInt64 pos = ((_code-_low+1) * _totalprob - 1)/(_high-_low+1);
             int symbol = 0;
             UInt64 postmp = pos;
-            while (postmp >= probs[symbol])
+            while (postmp >= _probs[symbol])
             {
-                postmp -= probs[symbol];
+                postmp -= _probs[symbol];
                 symbol++;
             }
             pos -= postmp;  // pos is now the symbol's lowest possible pos
 
             // Set high and low to the new values
-            UInt64 newlow = (high-low+1) * pos / totalprob + low;
-            high = (high-low+1) * (pos+probs[symbol]) / totalprob + low - 1;
-            low = newlow;
+            UInt64 newlow = (_high-_low+1) * pos / _totalprob + _low;
+            _high = (_high-_low+1) * (pos+_probs[symbol]) / _totalprob + _low - 1;
+            _low = newlow;
 
             // While most significant bits match, shift them out
-            while ((high & 0x80000000) == (low & 0x80000000))
+            while ((_high & 0x80000000) == (_low & 0x80000000))
             {
-                high = ((high << 1) & 0xffffffff) | 1;
-                low = (low << 1) & 0xffffffff;
-                code = (code << 1) & 0xffffffff;
-                if (ReadBit()) code++;
+                _high = ((_high << 1) & 0xffffffff) | 1;
+                _low = (_low << 1) & 0xffffffff;
+                _code = (_code << 1) & 0xffffffff;
+                if (ReadBit()) _code++;
             }
 
             // If underflow is imminent, shift it out
-            while (((low & 0x40000000) != 0) && ((high & 0x40000000) == 0))
+            while (((_low & 0x40000000) != 0) && ((_high & 0x40000000) == 0))
             {
-                high = ((high & 0x7fffffff) << 1) | 0x80000001;
-                low = (low << 1) & 0x7fffffff;
-                code = ((code & 0x7fffffff) ^ 0x40000000) << 1;
-                if (ReadBit()) code++;
+                _high = ((_high & 0x7fffffff) << 1) | 0x80000001;
+                _low = (_low << 1) & 0x7fffffff;
+                _code = ((_code & 0x7fffffff) ^ 0x40000000) << 1;
+                if (ReadBit()) _code++;
             }
 
             return symbol;
