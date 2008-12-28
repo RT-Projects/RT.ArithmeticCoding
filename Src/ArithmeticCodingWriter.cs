@@ -29,7 +29,7 @@ namespace RT.Util.Streams
         /// <param name="probabilities">The probability of each byte occurring. Can be null, in which 
         /// case all bytes are assumed to have the same probability. When reading the data back using
         /// an <see cref="ArithmeticCodingReader"/>, the set of probabilities must be exactly the same.</param>
-        /// <remarks>The compressed data will not be complete until the stream is closed using <see cref="Close"/>.</remarks>
+        /// <remarks>The compressed data will not be complete until the stream is closed using <see cref="Close(bool)"/>.</remarks>
         public ArithmeticCodingWriter(Stream basestr, UInt64[] probabilities)
         {
             _basestream = basestr;
