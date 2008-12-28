@@ -139,7 +139,7 @@ namespace RT.Util.Streams
             return ret;
         }
 
-        private int ReadSymbol()
+        public int ReadSymbol()
         {
             // Find out what the next symbol is from the contents of 'code'
             UInt64 pos = ((_code-_low+1) * _totalprob - 1)/(_high-_low+1);

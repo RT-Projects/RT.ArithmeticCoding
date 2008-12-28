@@ -1,6 +1,4 @@
 using System;
-using System.Collections.Generic;
-using System.Text;
 using System.IO;
 
 namespace RT.Util.Streams
@@ -105,7 +103,7 @@ namespace RT.Util.Streams
                 WriteSymbol(buffer[i]);
         }
 
-        private void WriteSymbol(int p)
+        public void WriteSymbol(int p)
         {
             if (p >= _probs.Length)
                 throw new Exception("Attempt to encode non-existent symbol");
@@ -156,7 +154,13 @@ namespace RT.Util.Streams
 
         public override void Close()
         {
-            WriteSymbol(END_OF_STREAM);
+            Close(true);
+        }
+
+        public void Close(bool writeEndOfStream)
+        {
+            if (writeEndOfStream)
+                WriteSymbol(END_OF_STREAM);
             OutputBit((_low & 0x40000000) != 0);
             _underflow++;
             while (_underflow > 0)
