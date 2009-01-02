@@ -29,7 +29,7 @@ namespace RT.Util.Streams
         /// <param name="probabilities">The probability of each byte occurring. Can be null, in which 
         /// case all bytes are assumed to have the same probability. When reading the data back using
         /// an <see cref="ArithmeticCodingReader"/>, the set of probabilities must be exactly the same.</param>
-        /// <remarks>The compressed data will not be complete until the stream is closed using <see cref="Close(bool)"/>.</remarks>
+        /// <remarks>The compressed data will not be complete until the stream is closed using <see cref="Close()"/>.</remarks>
         public ArithmeticCodingWriter(Stream basestr, UInt64[] probabilities)
         {
             _basestream = basestr;
@@ -99,10 +99,14 @@ namespace RT.Util.Streams
 
         public override void Write(byte[] buffer, int offset, int count)
         {
-            for (int i = offset; (i < offset+count) && (i < buffer.Length); i++)
+            for (int i = offset; (i < offset + count) && (i < buffer.Length); i++)
                 WriteSymbol(buffer[i]);
         }
 
+        /// <summary>
+        /// Writes a single symbol. Use this if you are not using bytes as your symbol alphabet.
+        /// </summary>
+        /// <param name="p">Symbol to write. Must be an integer between 0 and the length of the probabilities array passed in the constructor.</param>
         public void WriteSymbol(int p)
         {
             if (p >= _probs.Length)
@@ -113,8 +117,8 @@ namespace RT.Util.Streams
                 pos += _probs[i];
 
             // Set high and low to the new values
-            UInt64 newlow = (_high-_low+1) * pos / _totalprob + _low;
-            _high = (_high-_low+1) * (pos+_probs[p]) / _totalprob + _low - 1;
+            UInt64 newlow = (_high - _low + 1) * pos / _totalprob + _low;
+            _high = (_high - _low + 1) * (pos + _probs[p]) / _totalprob + _low - 1;
             _low = newlow;
 
             // While most significant bits match, shift them out and output them
@@ -157,9 +161,17 @@ namespace RT.Util.Streams
             Close(true);
         }
 
-        public void Close(bool writeEndOfStream)
+#pragma warning restore 1591    // Missing XML comment for publicly visible type or member
+
+        /// <summary>
+        /// Closes the stream, optionally writing an end-of-stream symbol first. The end-of-stream symbol
+        /// has the numeric value 257, which is useful only if you have 256 symbols or fewer. If you intend
+        /// to use a larger symbol alphabet, write your own end-of-stream symbol and then invoke Close(false).
+        /// </summary>
+        /// <param name="writeEndOfStreamSymbol">Determines whether to write the end-of-stream symbol or not.</param>
+        public void Close(bool writeEndOfStreamSymbol)
         {
-            if (writeEndOfStream)
+            if (writeEndOfStreamSymbol)
                 WriteSymbol(END_OF_STREAM);
             OutputBit((_low & 0x40000000) != 0);
             _underflow++;
@@ -169,12 +181,8 @@ namespace RT.Util.Streams
                 _underflow--;
             }
             _basestream.WriteByte(_curbyte);
-
             _basestream.Close();
             base.Close();
         }
-
-#pragma warning restore 1591    // Missing XML comment for publicly visible type or member
-
     }
 }

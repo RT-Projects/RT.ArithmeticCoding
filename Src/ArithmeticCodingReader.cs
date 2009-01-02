@@ -139,6 +139,10 @@ namespace RT.Util.Streams
             return ret;
         }
 
+        /// <summary>
+        /// Reads a single symbol. Use this if you are not using bytes as your symbol alphabet.
+        /// </summary>
+        /// <returns>Symbol read.</returns>
         public int ReadSymbol()
         {
             // Find out what the next symbol is from the contents of 'code'
