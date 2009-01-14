@@ -111,6 +111,8 @@ namespace RT.Util.Streams
         {
             if (p >= _probs.Length)
                 throw new Exception("Attempt to encode non-existent symbol");
+            if (_probs[p] == 0)
+                throw new Exception("Attempt to encode a symbol with zero probability");
 
             UInt64 pos = 0;
             for (int i = 0; i < p; i++)
