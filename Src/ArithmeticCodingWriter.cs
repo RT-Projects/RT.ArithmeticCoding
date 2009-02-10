@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Linq;
 
 namespace RT.Util.Streams
 {
@@ -9,10 +10,10 @@ namespace RT.Util.Streams
     /// <seealso cref="ArithmeticCodingReader"/>
     public class ArithmeticCodingWriter : Stream
     {
-        private UInt64 _high, _low;
+        private ulong _high, _low;
         private int _underflow;
-        private UInt64[] _probs;
-        private UInt64 _totalprob;
+        private ulong[] _probs;
+        private ulong _totalprob;
         private Stream _basestream;
         private byte _curbyte;
         private int _curbit;
@@ -30,14 +31,14 @@ namespace RT.Util.Streams
         /// case all bytes are assumed to have the same probability. When reading the data back using
         /// an <see cref="ArithmeticCodingReader"/>, the set of probabilities must be exactly the same.</param>
         /// <remarks>The compressed data will not be complete until the stream is closed using <see cref="Close()"/>.</remarks>
-        public ArithmeticCodingWriter(Stream basestr, UInt64[] probabilities)
+        public ArithmeticCodingWriter(Stream basestr, ulong[] probabilities)
         {
             _basestream = basestr;
             _high = 0xffffffff;
             _low = 0;
             if (probabilities == null)
             {
-                _probs = new UInt64[257];
+                _probs = new ulong[257];
                 for (int i = 0; i < 257; i++)
                     _probs[i] = 1;
                 _totalprob = 257;
@@ -114,12 +115,12 @@ namespace RT.Util.Streams
             if (_probs[p] == 0)
                 throw new Exception("Attempt to encode a symbol with zero probability");
 
-            UInt64 pos = 0;
+            ulong pos = 0;
             for (int i = 0; i < p; i++)
                 pos += _probs[i];
 
             // Set high and low to the new values
-            UInt64 newlow = (_high - _low + 1) * pos / _totalprob + _low;
+            ulong newlow = (_high - _low + 1) * pos / _totalprob + _low;
             _high = (_high - _low + 1) * (pos + _probs[p]) / _totalprob + _low - 1;
             _low = newlow;
 
@@ -185,6 +186,19 @@ namespace RT.Util.Streams
             _basestream.WriteByte(_curbyte);
             _basestream.Close();
             base.Close();
+        }
+
+        /// <summary>
+        /// Changes the probabilities of the symbols. This can be used at any point in the middle of encoding,
+        /// as long as the same change is made at the same time when decoding using <see cref="ArithmeticCodingReader"/>.
+        /// </summary>
+        /// <param name="newProbs"></param>
+        public void TweakProbabilities(ulong[] newProbs)
+        {
+            _probs = newProbs;
+            _totalprob = 0;
+            for (int i = 0; i < _probs.Length; i++)
+                _totalprob += _probs[i];
         }
     }
 }
