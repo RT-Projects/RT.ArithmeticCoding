@@ -8,7 +8,7 @@ namespace RT.Util.Streams
     /// Provides a write-only stream that can compress data using Arithmetic Coding.
     /// </summary>
     /// <seealso cref="ArithmeticCodingReader"/>
-    public class ArithmeticCodingWriter : Stream
+    public sealed class ArithmeticCodingWriter : Stream
     {
         private ulong _high, _low;
         private int _underflow;

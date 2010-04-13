@@ -9,7 +9,7 @@ namespace RT.Util.Streams
     /// Provides a read-only stream that can decompress data that was compressed using Arithmetic Coding.
     /// </summary>
     /// <seealso cref="ArithmeticCodingWriter"/>
-    public class ArithmeticCodingReader : Stream
+    public sealed class ArithmeticCodingReader : Stream
     {
         private UInt64 _high, _low, _code;
         private UInt64[] _probs;
