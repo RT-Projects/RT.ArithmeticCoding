@@ -17,6 +17,7 @@ namespace RT.Util.Streams
         private Stream _basestream;
         private byte _curbyte;
         private int _curbit;
+        private bool _ended = false;
 
         /// <summary>
         /// Encapsulates a symbol that represents the end of the stream. All other symbols are byte values.
@@ -89,13 +90,15 @@ namespace RT.Util.Streams
 
         public override int Read(byte[] buffer, int offset, int count)
         {
+            if (_ended)
+                return -1;
             for (int i = 0; i < count; i++)
             {
                 int symbol = ReadSymbol();
                 if (symbol == END_OF_STREAM)
                     return i;
                 else
-                    buffer[offset+i] = (byte) symbol;
+                    buffer[offset + i] = (byte) symbol;
             }
             return count;
         }
@@ -178,6 +181,9 @@ namespace RT.Util.Streams
                 _code = ((_code & 0x7fffffff) ^ 0x40000000) << 1;
                 if (ReadBit()) _code++;
             }
+
+            if (symbol == END_OF_STREAM)
+                _ended = true;
 
             return symbol;
         }
