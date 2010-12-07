@@ -91,7 +91,7 @@ namespace RT.Util.Streams
         public override int Read(byte[] buffer, int offset, int count)
         {
             if (_ended)
-                return -1;
+                return 0;
             for (int i = 0; i < count; i++)
             {
                 int symbol = ReadSymbol();
