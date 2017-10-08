@@ -1,7 +1,7 @@
 using System;
 using System.IO;
 
-namespace RT.Util.Streams
+namespace RT.ArithmeticCoding
 {
     /// <summary>
     ///     Provides a write-only stream that can compress data using Arithmetic Coding.</summary>
@@ -172,7 +172,7 @@ namespace RT.Util.Streams
         ///     alphabet, write your own end-of-stream symbol and then invoke Close(false).</summary>
         /// <param name="writeEndOfStreamSymbol">
         ///     Determines whether to write the end-of-stream symbol or not.</param>
-        public void Close(bool writeEndOfStreamSymbol)
+        public void Close(bool writeEndOfStreamSymbol, bool closeBaseStream = true)
         {
             if (writeEndOfStreamSymbol)
                 WriteSymbol(END_OF_STREAM);
@@ -184,7 +184,8 @@ namespace RT.Util.Streams
                 _underflow--;
             }
             _basestream.WriteByte(_curbyte);
-            _basestream.Close();
+            if (closeBaseStream)
+                _basestream.Close();
             base.Close();
         }
 

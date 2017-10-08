@@ -1,7 +1,7 @@
 using System;
 using System.IO;
 
-namespace RT.Util.Streams
+namespace RT.ArithmeticCoding
 {
     /// <summary>
     ///     Provides a read-only stream that can decompress data that was compressed using Arithmetic Coding.</summary>

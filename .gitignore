@@ -5,3 +5,5 @@ obj
 *.csproj.user
 *.sln.cache
 *.orig
+packages
+TestResults

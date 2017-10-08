@@ -1,17 +1,40 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
 using System.Linq;
-using NUnit.Framework;
-using RT.Util.ExtensionMethods;
+using System.Text;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 
-namespace RT.Util.Streams
+namespace RT.ArithmeticCoding.Tests
 {
-    [TestFixture]
+    [TestClass]
     public sealed class ArithmeticCodingTests
     {
-        [Test]
+        private Random _rnd = new Random();
+
+        private ulong[] newArray(int length, ulong initial)
+        {
+            var result = new ulong[length];
+            for (int i = 0; i < length; i++)
+                result[i] = initial;
+            return result;
+        }
+
+        private void writeInt(Stream stream, int value)
+        {
+            using (var bw = new BinaryWriter(stream, Encoding.UTF8, leaveOpen: true))
+                bw.Write(value);
+        }
+
+        private int readInt(Stream stream)
+        {
+            using (var br = new BinaryReader(stream, Encoding.UTF8, leaveOpen: true))
+                return br.ReadInt32();
+        }
+
+        [TestMethod]
         public void TestBasic()
         {
-            var freqs = Ut.NewArray(256, _ => 1UL);
+            var freqs = newArray(256, 1);
             var ms = new MemoryStream();
             var encoder = new ArithmeticCodingWriter(ms, freqs);
             for (int i = 0; i < 256; i++)
@@ -29,19 +52,19 @@ namespace RT.Util.Streams
             Assert.AreEqual(bytes.Length, ms.Position);
         }
 
-        [Test]
+        [TestMethod]
         public void TestAdvanced()
         {
-            Rnd.Reset(12345);
+            _rnd = new Random(12345);
             int max = 1000;
-            var symbols = Enumerable.Range(1, 100_000).Select(_ => Rnd.Next(0, max)).ToArray();
+            var symbols = Enumerable.Range(1, 100_000).Select(_ => _rnd.Next(0, max)).ToArray();
 
-            var mainFreqs = Ut.NewArray(max, _ => 1UL);
+            var mainFreqs = newArray(max, 1);
             var secondaryFreqs = new ulong[] { 3, 2, 1 };
 
             var ms = new MemoryStream();
-            var encoder = new ArithmeticCodingWriter(new DoNotCloseStream(ms), mainFreqs);
-            ms.WriteInt64Optim(12345);
+            var encoder = new ArithmeticCodingWriter(ms, mainFreqs);
+            writeInt(ms, 12345);
             for (int i = 0; i < symbols.Length; i++)
             {
                 encoder.WriteSymbol(symbols[i]);
@@ -59,14 +82,14 @@ namespace RT.Util.Streams
                     encoder.TweakProbabilities(mainFreqs);
                 }
             }
-            encoder.Close(false);
-            //ms.WriteInt64Optim(-54321); // to verify that the stream ends where we think it ends
+            encoder.Close(false, false);
+            //writeInt(ms, -54321); // to verify that the stream ends where we think it ends
             var encoded = ms.ToArray();
 
 
             ms = new MemoryStream(encoded);
-            mainFreqs = Ut.NewArray(max, _ => 1UL); // reset frequencies
-            Assert.AreEqual(12345, ms.ReadInt64Optim());
+            mainFreqs = newArray(max, 1); // reset frequencies
+            Assert.AreEqual(12345, readInt(ms));
             var decoder = new ArithmeticCodingReader(ms, mainFreqs);
             for (int i = 0; i < symbols.Length; i++)
             {
@@ -87,7 +110,7 @@ namespace RT.Util.Streams
                 }
             }
 #warning TODO: this fails at the moment because the reader reads past what the writer wrote
-            //Assert.AreEqual(-54321, ms.ReadInt64Optim());
+            //Assert.AreEqual(-54321, readInt(ms));
         }
     }
 }
