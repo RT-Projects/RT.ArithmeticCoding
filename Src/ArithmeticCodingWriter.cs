@@ -15,6 +15,7 @@ namespace RT.ArithmeticCoding
         private Stream _basestream;
         private byte _curbyte;
         private int _curbit;
+        private bool _anyWrites = false;
 
         /// <summary>Encapsulates a symbol that represents the end of the stream. All other symbols are byte values.</summary>
         public const int END_OF_STREAM = 256;
@@ -114,6 +115,7 @@ namespace RT.ArithmeticCoding
                 throw new Exception("Attempt to encode non-existent symbol");
             if (_freqs[p] == 0)
                 throw new Exception("Attempt to encode a symbol with zero frequency");
+            _anyWrites = true;
 
             ulong pos = 0;
             for (int i = 0; i < p; i++)
@@ -176,18 +178,20 @@ namespace RT.ArithmeticCoding
         {
             if (writeEndOfStreamSymbol)
                 WriteSymbol(END_OF_STREAM);
-            outputBit((_low & 0x4000_0000) != 0);
-            _underflow++;
-            while (_underflow > 0)
+            if (_anyWrites)
             {
-                outputBit((_low & 0x4000_0000) == 0);
-                _underflow--;
+                outputBit((_low & 0x4000_0000) != 0);
+                _underflow++;
+                while (_underflow > 0)
+                {
+                    outputBit((_low & 0x4000_0000) == 0);
+                    _underflow--;
+                }
+                _basestream.WriteByte(_curbyte);
+                // The reader needs to look ahead by a few bytes, so pad the ending with 2 more bytes to keep them in sync
+                _basestream.WriteByte(0);
+                _basestream.WriteByte(0);
             }
-            _basestream.WriteByte(_curbyte);
-            // The reader needs to look ahead by 4 bytes, so pad the ending with 3 more bytes to keep them in sync
-            _basestream.WriteByte(0);
-            _basestream.WriteByte(0);
-            _basestream.WriteByte(0);
             if (closeBaseStream)
                 _basestream.Close();
             base.Close();

@@ -37,9 +37,9 @@ namespace RT.ArithmeticCoding.Tests
             int imprecise = 0;
             for (int i = 0; i < 1000; i++)
                 testBasic(i, ref imprecise);
-            Assert.IsTrue(imprecise <= 632);
+            Assert.IsTrue(imprecise <= 590);
         }
-		
+
         private void testBasic(int length, ref int imprecise)
         {
             var freqs = newArray(256, v => 256 - (ulong) v);

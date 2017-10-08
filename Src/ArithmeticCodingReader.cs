@@ -15,6 +15,7 @@ namespace RT.ArithmeticCoding
         private byte _curbyte;
         private int _curbit;
         private bool _ended = false;
+        private bool _first = true;
 
         /// <summary>Encapsulates a symbol that represents the end of the stream. All other symbols are byte values.</summary>
         public const int END_OF_STREAM = 256;
@@ -50,11 +51,6 @@ namespace RT.ArithmeticCoding
             _curbyte = 0;
             _curbit = 8;
             _code = 0;
-            for (int i = 0; i < 32; i++)
-            {
-                _code <<= 1;
-                _code |= readBit() ? 1UL : 0UL;
-            }
         }
 
 #pragma warning disable 1591    // Missing XML comment for publicly visible type or member
@@ -145,6 +141,36 @@ namespace RT.ArithmeticCoding
         ///     Symbol read.</returns>
         public int ReadSymbol()
         {
+            if (_first)
+            {
+                for (int i = 0; i < 32; i++)
+                {
+                    _code <<= 1;
+                    _code |= readBit() ? 1UL : 0UL;
+                }
+                _first = false;
+            }
+            else
+            {
+                // While most significant bits match, shift them out
+                while ((_high & 0x8000_0000) == (_low & 0x8000_0000))
+                {
+                    _high = ((_high << 1) & 0xFFFF_FFFF) | 1;
+                    _low = (_low << 1) & 0xFFFF_FFFF;
+                    _code = (_code << 1) & 0xFFFF_FFFF;
+                    if (readBit()) _code++;
+                }
+
+                // If underflow is imminent, shift it out
+                while (((_low & 0x4000_0000) != 0) && ((_high & 0x4000_0000) == 0))
+                {
+                    _high = ((_high & 0x7FFF_FFFF) << 1) | 0x8000_0001;
+                    _low = (_low << 1) & 0x7FFF_FFFF;
+                    _code = ((_code & 0x7FFF_FFFF) ^ 0x4000_0000) << 1;
+                    if (readBit()) _code++;
+                }
+            }
+
             // Find out what the next symbol is from the contents of 'code'
             ulong pos = ((_code - _low + 1) * _totalfreq - 1) / (_high - _low + 1);
             int symbol = 0;
@@ -160,24 +186,6 @@ namespace RT.ArithmeticCoding
             ulong newlow = (_high - _low + 1) * pos / _totalfreq + _low;
             _high = (_high - _low + 1) * (pos + _freqs[symbol]) / _totalfreq + _low - 1;
             _low = newlow;
-
-            // While most significant bits match, shift them out
-            while ((_high & 0x8000_0000) == (_low & 0x8000_0000))
-            {
-                _high = ((_high << 1) & 0xFFFF_FFFF) | 1;
-                _low = (_low << 1) & 0xFFFF_FFFF;
-                _code = (_code << 1) & 0xFFFF_FFFF;
-                if (readBit()) _code++;
-            }
-
-            // If underflow is imminent, shift it out
-            while (((_low & 0x4000_0000) != 0) && ((_high & 0x4000_0000) == 0))
-            {
-                _high = ((_high & 0x7FFF_FFFF) << 1) | 0x8000_0001;
-                _low = (_low << 1) & 0x7FFF_FFFF;
-                _code = ((_code & 0x7FFF_FFFF) ^ 0x4000_0000) << 1;
-                if (readBit()) _code++;
-            }
 
             if (symbol == END_OF_STREAM)
                 _ended = true;
