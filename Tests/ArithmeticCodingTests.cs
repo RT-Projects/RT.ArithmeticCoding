@@ -11,11 +11,11 @@ namespace RT.ArithmeticCoding.Tests
     {
         private Random _rnd = new Random();
 
-        private ulong[] newArray(int length, ulong initial)
+        private ulong[] newArray(int length, Func<int, ulong> initial)
         {
             var result = new ulong[length];
             for (int i = 0; i < length; i++)
-                result[i] = initial;
+                result[i] = initial(i);
             return result;
         }
 
@@ -34,13 +34,15 @@ namespace RT.ArithmeticCoding.Tests
         [TestMethod]
         public void TestBasic()
         {
+            int imprecise = 0;
             for (int i = 0; i < 1000; i++)
-                testBasic(i);
+                testBasic(i, ref imprecise);
+            Assert.IsTrue(imprecise <= 632);
         }
 		
-        private void testBasic(int length)
+        private void testBasic(int length, ref int imprecise)
         {
-            var freqs = newArray(256, 1);
+            var freqs = newArray(256, v => 256 - (ulong) v);
             var ms = new MemoryStream();
             var encoder = new ArithmeticCodingWriter(ms, freqs);
             for (int i = 0; i < length; i++)
@@ -58,7 +60,9 @@ namespace RT.ArithmeticCoding.Tests
                 Assert.AreEqual(i % 256, sym);
             }
 #warning These should be equal but currently the reader will read a different number of bytes than the writer writes
-            Assert.IsTrue(Math.Abs(expectedEnding - ms.Position) <= 3);
+            Assert.IsTrue(Math.Abs(expectedEnding - ms.Position) <= 1);
+            if (expectedEnding != ms.Position)
+                imprecise++;
         }
 
         [TestMethod]
@@ -68,7 +72,7 @@ namespace RT.ArithmeticCoding.Tests
             int max = 1000;
             var symbols = Enumerable.Range(1, 100_000).Select(_ => _rnd.Next(0, max)).ToArray();
 
-            var mainFreqs = newArray(max, 1);
+            var mainFreqs = newArray(max, _ => 1);
             var secondaryFreqs = new ulong[] { 3, 2, 1 };
 
             var ms = new MemoryStream();
@@ -92,12 +96,12 @@ namespace RT.ArithmeticCoding.Tests
                 }
             }
             encoder.Close(false, false);
-            //writeInt(ms, -54321); // to verify that the stream ends where we think it ends
+            writeInt(ms, -54321); // to verify that the stream ends where we think it ends
             var encoded = ms.ToArray();
 
 
             ms = new MemoryStream(encoded);
-            mainFreqs = newArray(max, 1); // reset frequencies
+            mainFreqs = newArray(max, _ => 1); // reset frequencies
             Assert.AreEqual(12345, readInt(ms));
             var decoder = new ArithmeticCodingReader(ms, mainFreqs);
             for (int i = 0; i < symbols.Length; i++)

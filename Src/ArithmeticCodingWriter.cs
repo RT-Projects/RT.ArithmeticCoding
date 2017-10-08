@@ -184,6 +184,10 @@ namespace RT.ArithmeticCoding
                 _underflow--;
             }
             _basestream.WriteByte(_curbyte);
+            // The reader needs to look ahead by 4 bytes, so pad the ending with 3 more bytes to keep them in sync
+            _basestream.WriteByte(0);
+            _basestream.WriteByte(0);
+            _basestream.WriteByte(0);
             if (closeBaseStream)
                 _basestream.Close();
             base.Close();
