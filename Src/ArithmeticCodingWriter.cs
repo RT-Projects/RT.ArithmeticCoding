@@ -33,7 +33,7 @@ namespace RT.ArithmeticCoding
         public ArithmeticCodingWriter(Stream basestr, ulong[] frequencies)
         {
             _basestream = basestr;
-            _high = 0xffffffff;
+            _high = 0xFFFF_FFFF;
             _low = 0;
             if (frequencies == null)
             {
@@ -125,28 +125,28 @@ namespace RT.ArithmeticCoding
             _low = newlow;
 
             // While most significant bits match, shift them out and output them
-            while ((_high & 0x80000000) == (_low & 0x80000000))
+            while ((_high & 0x8000_0000) == (_low & 0x8000_0000))
             {
-                OutputBit((_high & 0x80000000) != 0);
+                outputBit((_high & 0x8000_0000) != 0);
                 while (_underflow > 0)
                 {
-                    OutputBit((_high & 0x80000000) == 0);
+                    outputBit((_high & 0x8000_0000) == 0);
                     _underflow--;
                 }
-                _high = ((_high << 1) & 0xffffffff) | 1;
-                _low = (_low << 1) & 0xffffffff;
+                _high = ((_high << 1) & 0xFFFF_FFFF) | 1;
+                _low = (_low << 1) & 0xFFFF_FFFF;
             }
 
             // If underflow is imminent, shift it out
-            while (((_low & 0x40000000) != 0) && ((_high & 0x40000000) == 0))
+            while (((_low & 0x4000_0000) != 0) && ((_high & 0x4000_0000) == 0))
             {
                 _underflow++;
-                _high = ((_high & 0x7fffffff) << 1) | 0x80000001;
-                _low = (_low << 1) & 0x7fffffff;
+                _high = ((_high & 0x7FFF_FFFF) << 1) | 0x8000_0001;
+                _low = (_low << 1) & 0x7FFF_FFFF;
             }
         }
 
-        private void OutputBit(bool p)
+        private void outputBit(bool p)
         {
             if (p) _curbyte |= (byte) (1 << _curbit);
             if (_curbit >= 7)
@@ -176,11 +176,11 @@ namespace RT.ArithmeticCoding
         {
             if (writeEndOfStreamSymbol)
                 WriteSymbol(END_OF_STREAM);
-            OutputBit((_low & 0x40000000) != 0);
+            outputBit((_low & 0x4000_0000) != 0);
             _underflow++;
             while (_underflow > 0)
             {
-                OutputBit((_low & 0x40000000) == 0);
+                outputBit((_low & 0x4000_0000) == 0);
                 _underflow--;
             }
             _basestream.WriteByte(_curbyte);

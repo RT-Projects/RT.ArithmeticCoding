@@ -31,7 +31,7 @@ namespace RT.ArithmeticCoding
         public ArithmeticCodingReader(Stream basestr, ulong[] frequencies)
         {
             _basestream = basestr;
-            _high = 0xffffffff;
+            _high = 0xFFFF_FFFF;
             _low = 0;
             if (frequencies == null)
             {
@@ -53,7 +53,7 @@ namespace RT.ArithmeticCoding
             for (int i = 0; i < 32; i++)
             {
                 _code <<= 1;
-                _code |= ReadBit() ? (ulong) 1 : (ulong) 0;
+                _code |= readBit() ? 1UL : 0UL;
             }
         }
 
@@ -127,7 +127,7 @@ namespace RT.ArithmeticCoding
             base.Close();
         }
 
-        private bool ReadBit()
+        private bool readBit()
         {
             if (_curbit > 7)
             {
@@ -162,21 +162,21 @@ namespace RT.ArithmeticCoding
             _low = newlow;
 
             // While most significant bits match, shift them out
-            while ((_high & 0x80000000) == (_low & 0x80000000))
+            while ((_high & 0x8000_0000) == (_low & 0x8000_0000))
             {
-                _high = ((_high << 1) & 0xffffffff) | 1;
-                _low = (_low << 1) & 0xffffffff;
-                _code = (_code << 1) & 0xffffffff;
-                if (ReadBit()) _code++;
+                _high = ((_high << 1) & 0xFFFF_FFFF) | 1;
+                _low = (_low << 1) & 0xFFFF_FFFF;
+                _code = (_code << 1) & 0xFFFF_FFFF;
+                if (readBit()) _code++;
             }
 
             // If underflow is imminent, shift it out
-            while (((_low & 0x40000000) != 0) && ((_high & 0x40000000) == 0))
+            while (((_low & 0x4000_0000) != 0) && ((_high & 0x4000_0000) == 0))
             {
-                _high = ((_high & 0x7fffffff) << 1) | 0x80000001;
-                _low = (_low << 1) & 0x7fffffff;
-                _code = ((_code & 0x7fffffff) ^ 0x40000000) << 1;
-                if (ReadBit()) _code++;
+                _high = ((_high & 0x7FFF_FFFF) << 1) | 0x8000_0001;
+                _low = (_low << 1) & 0x7FFF_FFFF;
+                _code = ((_code & 0x7FFF_FFFF) ^ 0x4000_0000) << 1;
+                if (readBit()) _code++;
             }
 
             if (symbol == END_OF_STREAM)
