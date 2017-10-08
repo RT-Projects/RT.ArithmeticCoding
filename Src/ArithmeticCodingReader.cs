@@ -1,44 +1,41 @@
 using System;
-using System.Collections.Generic;
-using System.Text;
 using System.IO;
 
 namespace RT.Util.Streams
 {
     /// <summary>
-    /// Provides a read-only stream that can decompress data that was compressed using Arithmetic Coding.
-    /// </summary>
+    ///     Provides a read-only stream that can decompress data that was compressed using Arithmetic Coding.</summary>
     /// <seealso cref="ArithmeticCodingWriter"/>
     public sealed class ArithmeticCodingReader : Stream
     {
-        private UInt64 _high, _low, _code;
-        private UInt64[] _probs;
-        private UInt64 _totalprob;
+        private ulong _high, _low, _code;
+        private ulong[] _probs;
+        private ulong _totalprob;
         private Stream _basestream;
         private byte _curbyte;
         private int _curbit;
         private bool _ended = false;
 
-        /// <summary>
-        /// Encapsulates a symbol that represents the end of the stream. All other symbols are byte values.
-        /// </summary>
+        /// <summary>Encapsulates a symbol that represents the end of the stream. All other symbols are byte values.</summary>
         public const int END_OF_STREAM = 256;
 
         /// <summary>
-        /// Initialises an <see cref="ArithmeticCodingReader"/> instance given a base stream and a set of byte probabilities.
-        /// </summary>
-        /// <param name="basestr">The base stream to which the compressed data will be written.</param>
-        /// <param name="probabilities">The probability of each byte occurring. Can be null, in which
-        /// case all bytes are assumed to have the same probability. The set of probabilities must be
-        /// exactly the same as the one used when the data was written using <see cref="ArithmeticCodingWriter"/>.</param>
-        public ArithmeticCodingReader(Stream basestr, UInt64[] probabilities)
+        ///     Initialises an <see cref="ArithmeticCodingReader"/> instance given a base stream and a set of byte
+        ///     probabilities.</summary>
+        /// <param name="basestr">
+        ///     The base stream to which the compressed data will be written.</param>
+        /// <param name="probabilities">
+        ///     The probability of each byte occurring. Can be null, in which case all bytes are assumed to have the same
+        ///     probability. The set of probabilities must be exactly the same as the one used when the data was written using
+        ///     <see cref="ArithmeticCodingWriter"/>.</param>
+        public ArithmeticCodingReader(Stream basestr, ulong[] probabilities)
         {
             _basestream = basestr;
             _high = 0xffffffff;
             _low = 0;
             if (probabilities == null)
             {
-                _probs = new UInt64[257];
+                _probs = new ulong[257];
                 for (int i = 0; i < 257; i++)
                     _probs[i] = 1;
                 _totalprob = 257;
@@ -56,7 +53,7 @@ namespace RT.Util.Streams
             for (int i = 0; i < 32; i++)
             {
                 _code <<= 1;
-                _code |= ReadBit() ? (UInt64) 1 : (UInt64) 0;
+                _code |= ReadBit() ? (ulong) 1 : (ulong) 0;
             }
         }
 
@@ -143,15 +140,15 @@ namespace RT.Util.Streams
         }
 
         /// <summary>
-        /// Reads a single symbol. Use this if you are not using bytes as your symbol alphabet.
-        /// </summary>
-        /// <returns>Symbol read.</returns>
+        ///     Reads a single symbol. Use this if you are not using bytes as your symbol alphabet.</summary>
+        /// <returns>
+        ///     Symbol read.</returns>
         public int ReadSymbol()
         {
             // Find out what the next symbol is from the contents of 'code'
-            UInt64 pos = ((_code-_low+1) * _totalprob - 1)/(_high-_low+1);
+            ulong pos = ((_code - _low + 1) * _totalprob - 1) / (_high - _low + 1);
             int symbol = 0;
-            UInt64 postmp = pos;
+            ulong postmp = pos;
             while (postmp >= _probs[symbol])
             {
                 postmp -= _probs[symbol];
@@ -160,8 +157,8 @@ namespace RT.Util.Streams
             pos -= postmp;  // pos is now the symbol's lowest possible pos
 
             // Set high and low to the new values
-            UInt64 newlow = (_high-_low+1) * pos / _totalprob + _low;
-            _high = (_high-_low+1) * (pos+_probs[symbol]) / _totalprob + _low - 1;
+            ulong newlow = (_high - _low + 1) * pos / _totalprob + _low;
+            _high = (_high - _low + 1) * (pos + _probs[symbol]) / _totalprob + _low - 1;
             _low = newlow;
 
             // While most significant bits match, shift them out

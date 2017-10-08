@@ -1,12 +1,10 @@
 using System;
 using System.IO;
-using System.Linq;
 
 namespace RT.Util.Streams
 {
     /// <summary>
-    /// Provides a write-only stream that can compress data using Arithmetic Coding.
-    /// </summary>
+    ///     Provides a write-only stream that can compress data using Arithmetic Coding.</summary>
     /// <seealso cref="ArithmeticCodingReader"/>
     public sealed class ArithmeticCodingWriter : Stream
     {
@@ -18,19 +16,20 @@ namespace RT.Util.Streams
         private byte _curbyte;
         private int _curbit;
 
-        /// <summary>
-        /// Encapsulates a symbol that represents the end of the stream. All other symbols are byte values.
-        /// </summary>
+        /// <summary>Encapsulates a symbol that represents the end of the stream. All other symbols are byte values.</summary>
         public const int END_OF_STREAM = 256;
 
         /// <summary>
-        /// Initialises an <see cref="ArithmeticCodingWriter"/> instance given a base stream and a set of byte probabilities.
-        /// </summary>
-        /// <param name="basestr">The base stream to which the compressed data will be written.</param>
-        /// <param name="probabilities">The probability of each byte occurring. Can be null, in which 
-        /// case all bytes are assumed to have the same probability. When reading the data back using
-        /// an <see cref="ArithmeticCodingReader"/>, the set of probabilities must be exactly the same.</param>
-        /// <remarks>The compressed data will not be complete until the stream is closed using <see cref="Close()"/>.</remarks>
+        ///     Initialises an <see cref="ArithmeticCodingWriter"/> instance given a base stream and a set of byte
+        ///     probabilities.</summary>
+        /// <param name="basestr">
+        ///     The base stream to which the compressed data will be written.</param>
+        /// <param name="probabilities">
+        ///     The probability of each byte occurring. Can be null, in which case all bytes are assumed to have the same
+        ///     probability. When reading the data back using an <see cref="ArithmeticCodingReader"/>, the set of
+        ///     probabilities must be exactly the same.</param>
+        /// <remarks>
+        ///     The compressed data will not be complete until the stream is closed using <see cref="Close()"/>.</remarks>
         public ArithmeticCodingWriter(Stream basestr, ulong[] probabilities)
         {
             _basestream = basestr;
@@ -105,9 +104,10 @@ namespace RT.Util.Streams
         }
 
         /// <summary>
-        /// Writes a single symbol. Use this if you are not using bytes as your symbol alphabet.
-        /// </summary>
-        /// <param name="p">Symbol to write. Must be an integer between 0 and the length of the probabilities array passed in the constructor.</param>
+        ///     Writes a single symbol. Use this if you are not using bytes as your symbol alphabet.</summary>
+        /// <param name="p">
+        ///     Symbol to write. Must be an integer between 0 and the length of the probabilities array passed in the
+        ///     constructor.</param>
         public void WriteSymbol(int p)
         {
             if (p >= _probs.Length)
@@ -167,11 +167,11 @@ namespace RT.Util.Streams
 #pragma warning restore 1591    // Missing XML comment for publicly visible type or member
 
         /// <summary>
-        /// Closes the stream, optionally writing an end-of-stream symbol first. The end-of-stream symbol
-        /// has the numeric value 257, which is useful only if you have 256 symbols or fewer. If you intend
-        /// to use a larger symbol alphabet, write your own end-of-stream symbol and then invoke Close(false).
-        /// </summary>
-        /// <param name="writeEndOfStreamSymbol">Determines whether to write the end-of-stream symbol or not.</param>
+        ///     Closes the stream, optionally writing an end-of-stream symbol first. The end-of-stream symbol has the numeric
+        ///     value 257, which is useful only if you have 256 symbols or fewer. If you intend to use a larger symbol
+        ///     alphabet, write your own end-of-stream symbol and then invoke Close(false).</summary>
+        /// <param name="writeEndOfStreamSymbol">
+        ///     Determines whether to write the end-of-stream symbol or not.</param>
         public void Close(bool writeEndOfStreamSymbol)
         {
             if (writeEndOfStreamSymbol)
@@ -189,10 +189,9 @@ namespace RT.Util.Streams
         }
 
         /// <summary>
-        /// Changes the probabilities of the symbols. This can be used at any point in the middle of encoding,
-        /// as long as the same change is made at the same time when decoding using <see cref="ArithmeticCodingReader"/>.
-        /// </summary>
-        /// <param name="newProbs"></param>
+        ///     Changes the probabilities of the symbols. This can be used at any point in the middle of encoding, as long as
+        ///     the same change is made at the same time when decoding using <see cref="ArithmeticCodingReader"/>.</summary>
+        /// <param name="newProbs"/>
         public void TweakProbabilities(ulong[] newProbs)
         {
             _probs = newProbs;
