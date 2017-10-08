@@ -10,8 +10,8 @@ namespace RT.Util.Streams
     {
         private ulong _high, _low;
         private int _underflow;
-        private ulong[] _probs;
-        private ulong _totalprob;
+        private ulong[] _freqs;
+        private ulong _totalfreq;
         private Stream _basestream;
         private byte _curbyte;
         private int _curbit;
@@ -21,33 +21,33 @@ namespace RT.Util.Streams
 
         /// <summary>
         ///     Initialises an <see cref="ArithmeticCodingWriter"/> instance given a base stream and a set of byte
-        ///     probabilities.</summary>
+        ///     frequencies.</summary>
         /// <param name="basestr">
         ///     The base stream to which the compressed data will be written.</param>
-        /// <param name="probabilities">
-        ///     The probability of each byte occurring. Can be null, in which case all bytes are assumed to have the same
-        ///     probability. When reading the data back using an <see cref="ArithmeticCodingReader"/>, the set of
-        ///     probabilities must be exactly the same.</param>
+        /// <param name="frequencies">
+        ///     The frequency of each byte occurring. Can be null, in which case all bytes are assumed to have the same
+        ///     frequency. When reading the data back using an <see cref="ArithmeticCodingReader"/>, the set of frequencies
+        ///     must be exactly the same.</param>
         /// <remarks>
         ///     The compressed data will not be complete until the stream is closed using <see cref="Close()"/>.</remarks>
-        public ArithmeticCodingWriter(Stream basestr, ulong[] probabilities)
+        public ArithmeticCodingWriter(Stream basestr, ulong[] frequencies)
         {
             _basestream = basestr;
             _high = 0xffffffff;
             _low = 0;
-            if (probabilities == null)
+            if (frequencies == null)
             {
-                _probs = new ulong[257];
+                _freqs = new ulong[257];
                 for (int i = 0; i < 257; i++)
-                    _probs[i] = 1;
-                _totalprob = 257;
+                    _freqs[i] = 1;
+                _totalfreq = 257;
             }
             else
             {
-                _probs = probabilities;
-                _totalprob = 0;
-                for (int i = 0; i < _probs.Length; i++)
-                    _totalprob += _probs[i];
+                _freqs = frequencies;
+                _totalfreq = 0;
+                for (int i = 0; i < _freqs.Length; i++)
+                    _totalfreq += _freqs[i];
             }
             _curbyte = 0;
             _curbit = 0;
@@ -106,22 +106,22 @@ namespace RT.Util.Streams
         /// <summary>
         ///     Writes a single symbol. Use this if you are not using bytes as your symbol alphabet.</summary>
         /// <param name="p">
-        ///     Symbol to write. Must be an integer between 0 and the length of the probabilities array passed in the
+        ///     Symbol to write. Must be an integer between 0 and the length of the frequencies array passed in the
         ///     constructor.</param>
         public void WriteSymbol(int p)
         {
-            if (p >= _probs.Length)
+            if (p >= _freqs.Length)
                 throw new Exception("Attempt to encode non-existent symbol");
-            if (_probs[p] == 0)
-                throw new Exception("Attempt to encode a symbol with zero probability");
+            if (_freqs[p] == 0)
+                throw new Exception("Attempt to encode a symbol with zero frequency");
 
             ulong pos = 0;
             for (int i = 0; i < p; i++)
-                pos += _probs[i];
+                pos += _freqs[i];
 
             // Set high and low to the new values
-            ulong newlow = (_high - _low + 1) * pos / _totalprob + _low;
-            _high = (_high - _low + 1) * (pos + _probs[p]) / _totalprob + _low - 1;
+            ulong newlow = (_high - _low + 1) * pos / _totalfreq + _low;
+            _high = (_high - _low + 1) * (pos + _freqs[p]) / _totalfreq + _low - 1;
             _low = newlow;
 
             // While most significant bits match, shift them out and output them
@@ -189,15 +189,15 @@ namespace RT.Util.Streams
         }
 
         /// <summary>
-        ///     Changes the probabilities of the symbols. This can be used at any point in the middle of encoding, as long as
+        ///     Changes the frequencies of the symbols. This can be used at any point in the middle of encoding, as long as
         ///     the same change is made at the same time when decoding using <see cref="ArithmeticCodingReader"/>.</summary>
-        /// <param name="newProbs"/>
-        public void TweakProbabilities(ulong[] newProbs)
+        /// <param name="newFreqs"/>
+        public void TweakProbabilities(ulong[] newFreqs)
         {
-            _probs = newProbs;
-            _totalprob = 0;
-            for (int i = 0; i < _probs.Length; i++)
-                _totalprob += _probs[i];
+            _freqs = newFreqs;
+            _totalfreq = 0;
+            for (int i = 0; i < _freqs.Length; i++)
+                _totalfreq += _freqs[i];
         }
     }
 }

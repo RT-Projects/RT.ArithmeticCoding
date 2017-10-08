@@ -9,8 +9,8 @@ namespace RT.Util.Streams
     public sealed class ArithmeticCodingReader : Stream
     {
         private ulong _high, _low, _code;
-        private ulong[] _probs;
-        private ulong _totalprob;
+        private ulong[] _freqs;
+        private ulong _totalfreq;
         private Stream _basestream;
         private byte _curbyte;
         private int _curbit;
@@ -21,31 +21,31 @@ namespace RT.Util.Streams
 
         /// <summary>
         ///     Initialises an <see cref="ArithmeticCodingReader"/> instance given a base stream and a set of byte
-        ///     probabilities.</summary>
+        ///     frequencies.</summary>
         /// <param name="basestr">
         ///     The base stream to which the compressed data will be written.</param>
-        /// <param name="probabilities">
-        ///     The probability of each byte occurring. Can be null, in which case all bytes are assumed to have the same
-        ///     probability. The set of probabilities must be exactly the same as the one used when the data was written using
+        /// <param name="frequencies">
+        ///     The frequency of each byte occurring. Can be null, in which case all bytes are assumed to have the same
+        ///     frequency. The set of frequencies must be exactly the same as the one used when the data was written using
         ///     <see cref="ArithmeticCodingWriter"/>.</param>
-        public ArithmeticCodingReader(Stream basestr, ulong[] probabilities)
+        public ArithmeticCodingReader(Stream basestr, ulong[] frequencies)
         {
             _basestream = basestr;
             _high = 0xffffffff;
             _low = 0;
-            if (probabilities == null)
+            if (frequencies == null)
             {
-                _probs = new ulong[257];
+                _freqs = new ulong[257];
                 for (int i = 0; i < 257; i++)
-                    _probs[i] = 1;
-                _totalprob = 257;
+                    _freqs[i] = 1;
+                _totalfreq = 257;
             }
             else
             {
-                _probs = probabilities;
-                _totalprob = 0;
-                for (int i = 0; i < _probs.Length; i++)
-                    _totalprob += _probs[i];
+                _freqs = frequencies;
+                _totalfreq = 0;
+                for (int i = 0; i < _freqs.Length; i++)
+                    _totalfreq += _freqs[i];
             }
             _curbyte = 0;
             _curbit = 8;
@@ -146,19 +146,19 @@ namespace RT.Util.Streams
         public int ReadSymbol()
         {
             // Find out what the next symbol is from the contents of 'code'
-            ulong pos = ((_code - _low + 1) * _totalprob - 1) / (_high - _low + 1);
+            ulong pos = ((_code - _low + 1) * _totalfreq - 1) / (_high - _low + 1);
             int symbol = 0;
             ulong postmp = pos;
-            while (postmp >= _probs[symbol])
+            while (postmp >= _freqs[symbol])
             {
-                postmp -= _probs[symbol];
+                postmp -= _freqs[symbol];
                 symbol++;
             }
             pos -= postmp;  // pos is now the symbol's lowest possible pos
 
             // Set high and low to the new values
-            ulong newlow = (_high - _low + 1) * pos / _totalprob + _low;
-            _high = (_high - _low + 1) * (pos + _probs[symbol]) / _totalprob + _low - 1;
+            ulong newlow = (_high - _low + 1) * pos / _totalfreq + _low;
+            _high = (_high - _low + 1) * (pos + _freqs[symbol]) / _totalfreq + _low - 1;
             _low = newlow;
 
             // While most significant bits match, shift them out
@@ -183,6 +183,14 @@ namespace RT.Util.Streams
                 _ended = true;
 
             return symbol;
+        }
+
+        public void TweakProbabilities(ulong[] newFreqs)
+        {
+            _freqs = newFreqs;
+            _totalfreq = 0;
+            for (int i = 0; i < _freqs.Length; i++)
+                _totalfreq += _freqs[i];
         }
     }
 #pragma warning restore 1591    // Missing XML comment for publicly visible type or member
