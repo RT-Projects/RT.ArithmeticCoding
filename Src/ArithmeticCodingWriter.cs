@@ -187,8 +187,10 @@ namespace RT.ArithmeticCoding
                     outputBit((_low & 0x4000_0000) == 0);
                     _underflow--;
                 }
-                _basestream.WriteByte(_curbyte);
+                if (_curbit != 0)
+                    _basestream.WriteByte(_curbyte);
                 // The reader needs to look ahead by a few bytes, so pad the ending with 2 more bytes to keep them in sync
+                _basestream.WriteByte(0);
                 _basestream.WriteByte(0);
                 _basestream.WriteByte(0);
             }

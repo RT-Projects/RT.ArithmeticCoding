@@ -37,7 +37,7 @@ namespace RT.ArithmeticCoding.Tests
             int imprecise = 0;
             for (int i = 0; i < 1000; i++)
                 testBasic(i, ref imprecise);
-            Assert.IsTrue(imprecise <= 590);
+            Assert.IsTrue(imprecise <= 279);
         }
 
         private void testBasic(int length, ref int imprecise)
@@ -60,7 +60,7 @@ namespace RT.ArithmeticCoding.Tests
                 Assert.AreEqual(i % 256, sym);
             }
 #warning These should be equal but currently the reader will read a different number of bytes than the writer writes
-            Assert.IsTrue(Math.Abs(expectedEnding - ms.Position) <= 1);
+            Assert.IsTrue(ms.Position >= expectedEnding - 2 && ms.Position <= expectedEnding);
             if (expectedEnding != ms.Position)
                 imprecise++;
         }
