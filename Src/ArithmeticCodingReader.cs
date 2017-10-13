@@ -9,8 +9,7 @@ namespace RT.ArithmeticCoding
     public sealed class ArithmeticCodingReader : Stream
     {
         private ulong _high, _low, _code;
-        private ulong[] _freqs;
-        private ulong _totalfreq;
+        private ArithmeticSymbolContext _context;
         private Stream _basestream;
         private byte _curbyte;
         private int _curbit;
@@ -30,24 +29,16 @@ namespace RT.ArithmeticCoding
         ///     frequency. The set of frequencies must be exactly the same as the one used when the data was written using
         ///     <see cref="ArithmeticCodingWriter"/>.</param>
         public ArithmeticCodingReader(Stream basestr, ulong[] frequencies)
+            : this(basestr, frequencies == null ? new ArithmeticSymbolArrayContext(257) : new ArithmeticSymbolArrayContext(frequencies))
         {
-            _basestream = basestr;
+		}
+		
+        public ArithmeticCodingReader(Stream basestr, ArithmeticSymbolContext context)
+        {
+            _basestream = basestr ?? throw new ArgumentNullException(nameof(basestr));
+            _context = context ?? throw new ArgumentNullException(nameof(context));
             _high = 0xFFFF_FFFF;
             _low = 0;
-            if (frequencies == null)
-            {
-                _freqs = new ulong[257];
-                for (int i = 0; i < 257; i++)
-                    _freqs[i] = 1;
-                _totalfreq = 257;
-            }
-            else
-            {
-                _freqs = frequencies;
-                _totalfreq = 0;
-                for (int i = 0; i < _freqs.Length; i++)
-                    _totalfreq += _freqs[i];
-            }
             _curbyte = 0;
             _curbit = 8;
             _code = 0;
@@ -141,6 +132,8 @@ namespace RT.ArithmeticCoding
         ///     Symbol read.</returns>
         public int ReadSymbol()
         {
+            ulong total = _context.GetTotal();
+
             if (_first)
             {
                 for (int i = 0; i < 32; i++)
@@ -172,19 +165,20 @@ namespace RT.ArithmeticCoding
             }
 
             // Find out what the next symbol is from the contents of 'code'
-            ulong pos = ((_code - _low + 1) * _totalfreq - 1) / (_high - _low + 1);
+            ulong pos = ((_code - _low + 1) * total - 1) / (_high - _low + 1);
             int symbol = 0;
             ulong postmp = pos;
-            while (postmp >= _freqs[symbol])
+            ulong freq;
+            while (postmp >= (freq = _context.GetSymbolFreq(symbol)))
             {
-                postmp -= _freqs[symbol];
+                postmp -= freq;
                 symbol++;
             }
             pos -= postmp;  // pos is now the symbol's lowest possible pos
 
             // Set high and low to the new values
-            ulong newlow = (_high - _low + 1) * pos / _totalfreq + _low;
-            _high = (_high - _low + 1) * (pos + _freqs[symbol]) / _totalfreq + _low - 1;
+            ulong newlow = (_high - _low + 1) * pos / total + _low;
+            _high = (_high - _low + 1) * (pos + _context.GetSymbolFreq(symbol)) / total + _low - 1;
             _low = newlow;
 
             if (symbol == END_OF_STREAM)
@@ -193,14 +187,11 @@ namespace RT.ArithmeticCoding
             return symbol;
         }
 
-        public void TweakProbabilities(ulong[] newFreqs)
+        public void SetContext(ArithmeticSymbolContext context)
         {
-            _freqs = newFreqs;
-            _totalfreq = 0;
-            for (int i = 0; i < _freqs.Length; i++)
-                _totalfreq += _freqs[i];
+            _context = context;
         }
-
+		
         public void Close(bool closeBaseStream = true)
         {
             if (!_first)

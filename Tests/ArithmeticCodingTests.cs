@@ -31,6 +31,21 @@ namespace RT.ArithmeticCoding.Tests
                 return br.ReadInt32();
         }
 
+        public void TestSpeed()
+        {
+            // This is not a true unit test, but can be run from Program.cs to evaluate performance impact of a change
+            testBasic(1000);
+            // Test performance on a fixed context
+            var start = DateTime.UtcNow;
+            testBasic(10_000_000); // 3.92 s   =>  5.7
+            Console.WriteLine((DateTime.UtcNow - start).TotalSeconds);
+            // Test performance on a constantly updated context
+            start = DateTime.UtcNow;
+            for (int i = 0; i < 10; i++)
+                TestAdvanced(); // 4.17 - 4.18    => 1.7
+            Console.WriteLine((DateTime.UtcNow - start).TotalSeconds);
+        }
+
         [TestMethod]
         public void TestBasic()
         {
@@ -68,27 +83,27 @@ namespace RT.ArithmeticCoding.Tests
             int max = 1000;
             var symbols = Enumerable.Range(1, 100_000).Select(_ => _rnd.Next(0, max)).ToArray();
 
-            var mainFreqs = newArray(max, _ => 1);
-            var secondaryFreqs = new ulong[] { 3, 2, 1 };
+            var mainContext = new ArithmeticSymbolArrayContext(max, _ => 1);
+            var secondaryContext = new ArithmeticSymbolArrayContext(new ulong[] { 3, 2, 1 });
 
             var ms = new MemoryStream();
-            var encoder = new ArithmeticCodingWriter(ms, mainFreqs);
+            var encoder = new ArithmeticCodingWriter(ms, mainContext);
             writeInt(ms, 12345);
             for (int i = 0; i < symbols.Length; i++)
             {
                 encoder.WriteSymbol(symbols[i]);
-                mainFreqs[symbols[i]]++;
-                encoder.TweakProbabilities(mainFreqs);
+                mainContext.IncrementSymbolFrequency(symbols[i]);
+                encoder.SetContext(mainContext);
                 if (i % 1000 == 999)
                 {
-                    encoder.TweakProbabilities(secondaryFreqs);
+                    encoder.SetContext(secondaryContext);
                     encoder.WriteSymbol(0);
                     encoder.WriteSymbol(1);
                     encoder.WriteSymbol(0);
                     encoder.WriteSymbol(1);
                     encoder.WriteSymbol(0);
                     encoder.WriteSymbol(2);
-                    encoder.TweakProbabilities(mainFreqs);
+                    encoder.SetContext(mainContext);
                 }
             }
             encoder.Close(false, false);
@@ -97,25 +112,25 @@ namespace RT.ArithmeticCoding.Tests
 
 
             ms = new MemoryStream(encoded);
-            mainFreqs = newArray(max, _ => 1); // reset frequencies
+            mainContext = new ArithmeticSymbolArrayContext(max, _ => 1); // reset frequencies
             Assert.AreEqual(12345, readInt(ms));
-            var decoder = new ArithmeticCodingReader(ms, mainFreqs);
+            var decoder = new ArithmeticCodingReader(ms, mainContext);
             for (int i = 0; i < symbols.Length; i++)
             {
                 var sym = decoder.ReadSymbol();
                 Assert.AreEqual(symbols[i], sym);
-                mainFreqs[sym]++;
-                decoder.TweakProbabilities(mainFreqs);
+                mainContext.IncrementSymbolFrequency(sym);
+                decoder.SetContext(mainContext);
                 if (i % 1000 == 999)
                 {
-                    decoder.TweakProbabilities(secondaryFreqs);
+                    decoder.SetContext(secondaryContext);
                     Assert.AreEqual(0, decoder.ReadSymbol());
                     Assert.AreEqual(1, decoder.ReadSymbol());
                     Assert.AreEqual(0, decoder.ReadSymbol());
                     Assert.AreEqual(1, decoder.ReadSymbol());
                     Assert.AreEqual(0, decoder.ReadSymbol());
                     Assert.AreEqual(2, decoder.ReadSymbol());
-                    decoder.TweakProbabilities(mainFreqs);
+                    decoder.SetContext(mainContext);
                 }
             }
             decoder.Close(false);
@@ -123,7 +138,7 @@ namespace RT.ArithmeticCoding.Tests
         }
 
         [TestMethod]
-        public void TestKnownSymbol()
+        public void TestSingleSymbol()
         {
             var freqs = new ulong[] { 1 };
             var ms = new MemoryStream();

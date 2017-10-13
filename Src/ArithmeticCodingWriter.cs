@@ -10,8 +10,7 @@ namespace RT.ArithmeticCoding
     {
         private ulong _high, _low;
         private int _underflow;
-        private ulong[] _freqs;
-        private ulong _totalfreq;
+        private ArithmeticSymbolContext _context;
         private Stream _basestream;
         private byte _curbyte;
         private int _curbit;
@@ -32,24 +31,16 @@ namespace RT.ArithmeticCoding
         /// <remarks>
         ///     The compressed data will not be complete until the stream is closed using <see cref="Close()"/>.</remarks>
         public ArithmeticCodingWriter(Stream basestr, ulong[] frequencies)
+            : this(basestr, frequencies == null ? new ArithmeticSymbolArrayContext(257) : new ArithmeticSymbolArrayContext(frequencies))
         {
-            _basestream = basestr;
+		}
+		
+        public ArithmeticCodingWriter(Stream basestr, ArithmeticSymbolContext context)
+        {
+            _basestream = basestr ?? throw new ArgumentNullException(nameof(basestr));
+            _context = context ?? throw new ArgumentNullException(nameof(context));
             _high = 0xFFFF_FFFF;
             _low = 0;
-            if (frequencies == null)
-            {
-                _freqs = new ulong[257];
-                for (int i = 0; i < 257; i++)
-                    _freqs[i] = 1;
-                _totalfreq = 257;
-            }
-            else
-            {
-                _freqs = frequencies;
-                _totalfreq = 0;
-                for (int i = 0; i < _freqs.Length; i++)
-                    _totalfreq += _freqs[i];
-            }
             _curbyte = 0;
             _curbit = 0;
             _underflow = 0;
@@ -111,19 +102,19 @@ namespace RT.ArithmeticCoding
         ///     constructor.</param>
         public void WriteSymbol(int p)
         {
-            if (p >= _freqs.Length)
-                throw new Exception("Attempt to encode non-existent symbol");
-            if (_freqs[p] == 0)
-                throw new Exception("Attempt to encode a symbol with zero frequency");
+            ulong total = _context.GetTotal();
+            ulong symbolFreq = _context.GetSymbolFreq(p);
+            ulong symbolPos = _context.GetSymbolPos(p);
+            if (symbolFreq == 0)
+                throw new ArgumentException("Attempt to encode a symbol with zero frequency");
+            if (symbolPos + symbolFreq > total)
+                throw new InvalidOperationException("Attempt to encode a symbol for which the symbol context returns inconsistent results (pos+prob > total)");
+
             _anyWrites = true;
 
-            ulong pos = 0;
-            for (int i = 0; i < p; i++)
-                pos += _freqs[i];
-
             // Set high and low to the new values
-            ulong newlow = (_high - _low + 1) * pos / _totalfreq + _low;
-            _high = (_high - _low + 1) * (pos + _freqs[p]) / _totalfreq + _low - 1;
+            ulong newlow = (_high - _low + 1) * symbolPos / total + _low;
+            _high = (_high - _low + 1) * (symbolPos + symbolFreq) / total + _low - 1;
             _low = newlow;
 
             // While most significant bits match, shift them out and output them
@@ -205,12 +196,9 @@ namespace RT.ArithmeticCoding
         ///     Changes the frequencies of the symbols. This can be used at any point in the middle of encoding, as long as
         ///     the same change is made at the same time when decoding using <see cref="ArithmeticCodingReader"/>.</summary>
         /// <param name="newFreqs"/>
-        public void TweakProbabilities(ulong[] newFreqs)
+        public void SetContext(ArithmeticSymbolContext context)
         {
-            _freqs = newFreqs;
-            _totalfreq = 0;
-            for (int i = 0; i < _freqs.Length; i++)
-                _totalfreq += _freqs[i];
+            _context = context;
         }
     }
 }

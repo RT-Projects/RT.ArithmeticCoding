@@ -34,6 +34,7 @@
   <ItemGroup>
     <Compile Include="ArithmeticCodingReader.cs" />
     <Compile Include="ArithmeticCodingWriter.cs" />
+    <Compile Include="ArithmeticSymbolContext.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
