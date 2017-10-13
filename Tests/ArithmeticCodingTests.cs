@@ -121,5 +121,24 @@ namespace RT.ArithmeticCoding.Tests
             decoder.Close(false);
             Assert.AreEqual(-54321, readInt(ms));
         }
+
+        [TestMethod]
+        public void TestKnownSymbol()
+        {
+            var freqs = new ulong[] { 1 };
+            var ms = new MemoryStream();
+            var encoder = new ArithmeticCodingWriter(ms, freqs);
+            for (int i = 0; i < 100; i++)
+                encoder.WriteSymbol(0);
+            encoder.Close(false, false);
+            Assert.AreEqual(5, ms.Position);
+
+            ms = new MemoryStream(ms.ToArray());
+            var decoder = new ArithmeticCodingReader(ms, freqs);
+            for (int i = 0; i < 100; i++)
+                Assert.AreEqual(0, decoder.ReadSymbol());
+            decoder.Close(false);
+            Assert.AreEqual(5, ms.Position);
+        }
     }
 }
