@@ -12,8 +12,7 @@ namespace RT.ArithmeticCoding
         private int _underflow;
         private ArithmeticSymbolContext _context;
         private Stream _basestream;
-        private byte _curbyte;
-        private int _curbit;
+        private int _curbyte;
         private bool _anyWrites = false;
 
         /// <summary>Encapsulates a symbol that represents the end of the stream. All other symbols are byte values.</summary>
@@ -33,16 +32,15 @@ namespace RT.ArithmeticCoding
         public ArithmeticCodingWriter(Stream basestr, ulong[] frequencies)
             : this(basestr, frequencies == null ? new ArithmeticSymbolArrayContext(257) : new ArithmeticSymbolArrayContext(frequencies))
         {
-		}
-		
+        }
+
         public ArithmeticCodingWriter(Stream basestr, ArithmeticSymbolContext context)
         {
             _basestream = basestr ?? throw new ArgumentNullException(nameof(basestr));
             _context = context ?? throw new ArgumentNullException(nameof(context));
             _high = 0xFFFF_FFFF;
             _low = 0;
-            _curbyte = 0;
-            _curbit = 0;
+            _curbyte = 0x10000;
             _underflow = 0;
         }
 
@@ -110,46 +108,73 @@ namespace RT.ArithmeticCoding
             if (symbolPos + symbolFreq > total)
                 throw new InvalidOperationException("Attempt to encode a symbol for which the symbol context returns inconsistent results (pos+prob > total)");
 
+            ulong high = _high;
+            ulong low = _low;
+            int curbyte = _curbyte;
+            int underflow = _underflow;
+
             _anyWrites = true;
 
             // Set high and low to the new values
-            ulong newlow = (_high - _low + 1) * symbolPos / total + _low;
-            _high = (_high - _low + 1) * (symbolPos + symbolFreq) / total + _low - 1;
-            _low = newlow;
+            ulong newlow = (high - low + 1) * symbolPos / total + low;
+            high = (high - low + 1) * (symbolPos + symbolFreq) / total + low - 1;
+            low = newlow;
 
             // While most significant bits match, shift them out and output them
-            while ((_high & 0x8000_0000) == (_low & 0x8000_0000))
+            while ((high & 0x8000_0000) == (low & 0x8000_0000))
             {
-                outputBit((_high & 0x8000_0000) != 0);
-                while (_underflow > 0)
+                // inlined: outputBit((high & 0x8000_0000) != 0);
+                if ((high & 0x8000_0000) != 0)
+                    curbyte |= 0x100;
+                curbyte >>= 1;
+                if (curbyte < 0x200)
                 {
-                    outputBit((_high & 0x8000_0000) == 0);
-                    _underflow--;
+                    _basestream.WriteByte((byte) curbyte);
+                    curbyte = 0x10000;
                 }
-                _high = ((_high << 1) & 0xFFFF_FFFF) | 1;
-                _low = (_low << 1) & 0xFFFF_FFFF;
+
+                while (underflow > 0)
+                {
+                    // inlined: outputBit((high & 0x8000_0000) == 0);
+                    if ((high & 0x8000_0000) == 0)
+                        curbyte |= 0x100;
+                    curbyte >>= 1;
+                    if (curbyte < 0x200)
+                    {
+                        _basestream.WriteByte((byte) curbyte);
+                        curbyte = 0x10000;
+                    }
+
+                    underflow--;
+                }
+                high = ((high << 1) & 0xFFFF_FFFF) | 1;
+                low = (low << 1) & 0xFFFF_FFFF;
             }
 
             // If underflow is imminent, shift it out
-            while (((_low & 0x4000_0000) != 0) && ((_high & 0x4000_0000) == 0))
+            while (((low & 0x4000_0000) != 0) && ((high & 0x4000_0000) == 0))
             {
-                _underflow++;
-                _high = ((_high & 0x7FFF_FFFF) << 1) | 0x8000_0001;
-                _low = (_low << 1) & 0x7FFF_FFFF;
+                underflow++;
+                high = ((high & 0x7FFF_FFFF) << 1) | 0x8000_0001;
+                low = (low << 1) & 0x7FFF_FFFF;
             }
+
+            _high = high;
+            _low = low;
+            _curbyte = curbyte;
+            _underflow = underflow;
         }
 
         private void outputBit(bool p)
         {
-            if (p) _curbyte |= (byte) (1 << _curbit);
-            if (_curbit >= 7)
+            if (p)
+                _curbyte |= 0x100;
+            _curbyte >>= 1;
+            if (_curbyte < 0x200)
             {
-                _basestream.WriteByte(_curbyte);
-                _curbit = 0;
-                _curbyte = 0;
+                _basestream.WriteByte((byte) _curbyte);
+                _curbyte = 0x10000;
             }
-            else
-                _curbit++;
         }
 
         public override void Close()
@@ -178,8 +203,12 @@ namespace RT.ArithmeticCoding
                     outputBit((_low & 0x4000_0000) == 0);
                     _underflow--;
                 }
-                if (_curbit != 0)
-                    _basestream.WriteByte(_curbyte);
+                if (_curbyte != 0x10000)
+                {
+                    while (_curbyte >= 0x200)
+                        _curbyte >>= 1;
+                    _basestream.WriteByte((byte) _curbyte);
+                }
                 // The reader needs to look ahead by a few bytes, so pad the ending to keep them in sync. The reader and the writer
                 // use a slightly different number of bytes so this sequence helps the reader finish in exactly the right place.
                 _basestream.WriteByte(0x51);
