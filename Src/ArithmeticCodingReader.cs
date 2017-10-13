@@ -179,12 +179,12 @@ namespace RT.ArithmeticCoding
             {
                 if (pos >= _context.GetSymbolPos(symbol + 1))
                     inc = (inc > 0 ? inc : -inc) / 2;
-                else if (pos < _context.GetSymbolPos(symbol))
-                    inc = (inc > 0 ? -inc : inc) / 2;
                 else
-                    break;
+                    inc = (inc > 0 ? -inc : inc) / 2;
                 symbol += inc;
             }
+            if (pos >= _context.GetSymbolPos(symbol + 1))
+                symbol++;
             pos = _context.GetSymbolPos(symbol);
 
             // Set high and low to the new values
