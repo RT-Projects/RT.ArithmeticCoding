@@ -37,12 +37,12 @@ namespace RT.ArithmeticCoding.Tests
             testBasic(1000);
             // Test performance on a fixed context
             var start = DateTime.UtcNow;
-            testBasic(10_000_000); // 3.92 s   =>  5.7
+            testBasic(10_000_000); // 3.92s  =>  5.7s  =>  3.13s
             Console.WriteLine((DateTime.UtcNow - start).TotalSeconds);
             // Test performance on a constantly updated context
             start = DateTime.UtcNow;
             for (int i = 0; i < 10; i++)
-                TestAdvanced(); // 4.17 - 4.18    => 1.7
+                TestAdvanced(); // 4.17s  =>  1.7s  =>  0.79s
             Console.WriteLine((DateTime.UtcNow - start).TotalSeconds);
         }
 

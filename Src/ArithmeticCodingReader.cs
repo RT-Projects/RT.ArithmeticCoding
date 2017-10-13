@@ -31,8 +31,8 @@ namespace RT.ArithmeticCoding
         public ArithmeticCodingReader(Stream basestr, ulong[] frequencies)
             : this(basestr, frequencies == null ? new ArithmeticSymbolArrayContext(257) : new ArithmeticSymbolArrayContext(frequencies))
         {
-		}
-		
+        }
+
         public ArithmeticCodingReader(Stream basestr, ArithmeticSymbolContext context)
         {
             _basestream = basestr ?? throw new ArgumentNullException(nameof(basestr));
@@ -166,15 +166,26 @@ namespace RT.ArithmeticCoding
 
             // Find out what the next symbol is from the contents of 'code'
             ulong pos = ((_code - _low + 1) * total - 1) / (_high - _low + 1);
+            // Do a binary search of sorts to locate the symbol
             int symbol = 0;
-            ulong postmp = pos;
-            ulong freq;
-            while (postmp >= (freq = _context.GetSymbolFreq(symbol)))
+            int inc = 1;
+            while (pos >= _context.GetSymbolPos(symbol + 1))
             {
-                postmp -= freq;
-                symbol++;
+                symbol += inc;
+                inc *= 2;
             }
-            pos -= postmp;  // pos is now the symbol's lowest possible pos
+            inc = inc / 2;
+            while (inc != 0)
+            {
+                if (pos >= _context.GetSymbolPos(symbol + 1))
+                    inc = (inc > 0 ? inc : -inc) / 2;
+                else if (pos < _context.GetSymbolPos(symbol))
+                    inc = (inc > 0 ? -inc : inc) / 2;
+                else
+                    break;
+                symbol += inc;
+            }
+            pos = _context.GetSymbolPos(symbol);
 
             // Set high and low to the new values
             ulong newlow = (_high - _low + 1) * pos / total + _low;
@@ -191,7 +202,7 @@ namespace RT.ArithmeticCoding
         {
             _context = context;
         }
-		
+
         public void Close(bool closeBaseStream = true)
         {
             if (!_first)
