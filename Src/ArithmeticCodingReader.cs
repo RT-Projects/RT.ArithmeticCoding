@@ -11,8 +11,7 @@ namespace RT.ArithmeticCoding
         private ulong _high, _low, _code;
         private ArithmeticSymbolContext _context;
         private Stream _basestream;
-        private byte _curbyte;
-        private int _curbit;
+        private int _curbyte;
         private bool _ended = false;
         private bool _first = true;
 
@@ -39,8 +38,7 @@ namespace RT.ArithmeticCoding
             _context = context ?? throw new ArgumentNullException(nameof(context));
             _high = 0xFFFF_FFFF;
             _low = 0;
-            _curbyte = 0;
-            _curbit = 8;
+            _curbyte = 1;
             _code = 0;
         }
 
@@ -116,13 +114,10 @@ namespace RT.ArithmeticCoding
 
         private bool readBit()
         {
-            if (_curbit > 7)
-            {
-                _curbit = 0;
-                _curbyte = (byte) _basestream.ReadByte();
-            }
-            bool ret = (_curbyte & (1 << _curbit)) != 0;
-            _curbit++;
+            if (_curbyte == 1)
+                _curbyte = _basestream.ReadByte() | 0x100;
+            bool ret = (_curbyte & 1) != 0;
+            _curbyte >>= 1;
             return ret;
         }
 
