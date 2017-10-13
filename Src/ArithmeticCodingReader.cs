@@ -127,50 +127,55 @@ namespace RT.ArithmeticCoding
         ///     Symbol read.</returns>
         public int ReadSymbol()
         {
+            ulong high = _high;
+            ulong low = _low;
+            ulong code = _code;
+            int curbyte = _curbyte;
+
             ulong total = _context.GetTotal();
 
             if (_first)
             {
                 for (int i = 0; i < 32; i++)
                 {
-                    _code <<= 1;
-                    _code |= readBit() ? 1UL : 0UL;
+                    code <<= 1;
+                    code |= readBit() ? 1UL : 0UL;
                 }
                 _first = false;
             }
             else
             {
                 // While most significant bits match, shift them out
-                while ((_high & 0x8000_0000) == (_low & 0x8000_0000))
+                while ((high & 0x8000_0000) == (low & 0x8000_0000))
                 {
-                    _high = ((_high << 1) & 0xFFFF_FFFF) | 1;
-                    _low = (_low << 1) & 0xFFFF_FFFF;
-                    _code = (_code << 1) & 0xFFFF_FFFF;
+                    high = ((high << 1) & 0xFFFF_FFFF) | 1;
+                    low = (low << 1) & 0xFFFF_FFFF;
+                    code = (code << 1) & 0xFFFF_FFFF;
                     // readBit(), inlined
-                    if (_curbyte == 1)
-                        _curbyte = _basestream.ReadByte() | 0x100;
-                    if ((_curbyte & 1) != 0)
-                        _code++;
-                    _curbyte >>= 1;
+                    if (curbyte == 1)
+                        curbyte = _basestream.ReadByte() | 0x100;
+                    if ((curbyte & 1) != 0)
+                        code++;
+                    curbyte >>= 1;
                 }
 
                 // If underflow is imminent, shift it out
-                while (((_low & 0x4000_0000) != 0) && ((_high & 0x4000_0000) == 0))
+                while (((low & 0x4000_0000) != 0) && ((high & 0x4000_0000) == 0))
                 {
-                    _high = ((_high & 0x7FFF_FFFF) << 1) | 0x8000_0001;
-                    _low = (_low << 1) & 0x7FFF_FFFF;
-                    _code = ((_code & 0x7FFF_FFFF) ^ 0x4000_0000) << 1;
+                    high = ((high & 0x7FFF_FFFF) << 1) | 0x8000_0001;
+                    low = (low << 1) & 0x7FFF_FFFF;
+                    code = ((code & 0x7FFF_FFFF) ^ 0x4000_0000) << 1;
                     // readBit(), inlined
-                    if (_curbyte == 1)
-                        _curbyte = _basestream.ReadByte() | 0x100;
-                    if ((_curbyte & 1) != 0)
-                        _code++;
-                    _curbyte >>= 1;
+                    if (curbyte == 1)
+                        curbyte = _basestream.ReadByte() | 0x100;
+                    if ((curbyte & 1) != 0)
+                        code++;
+                    curbyte >>= 1;
                 }
             }
 
             // Find out what the next symbol is from the contents of 'code'
-            ulong pos = ((_code - _low + 1) * total - 1) / (_high - _low + 1);
+            ulong pos = ((code - low + 1) * total - 1) / (high - low + 1);
             // Do a binary search of sorts to locate the symbol
             int symbol = 0;
             int inc = 1;
@@ -193,12 +198,17 @@ namespace RT.ArithmeticCoding
             pos = _context.GetSymbolPos(symbol);
 
             // Set high and low to the new values
-            ulong newlow = (_high - _low + 1) * pos / total + _low;
-            _high = (_high - _low + 1) * (pos + _context.GetSymbolFreq(symbol)) / total + _low - 1;
-            _low = newlow;
+            ulong newlow = (high - low + 1) * pos / total + low;
+            high = (high - low + 1) * (pos + _context.GetSymbolFreq(symbol)) / total + low - 1;
+            low = newlow;
 
             if (symbol == END_OF_STREAM)
                 _ended = true;
+
+            _high = high;
+            _low = low;
+            _code = code;
+            _curbyte = curbyte;
 
             return symbol;
         }
