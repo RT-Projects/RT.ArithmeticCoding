@@ -146,7 +146,12 @@ namespace RT.ArithmeticCoding
                     _high = ((_high << 1) & 0xFFFF_FFFF) | 1;
                     _low = (_low << 1) & 0xFFFF_FFFF;
                     _code = (_code << 1) & 0xFFFF_FFFF;
-                    if (readBit()) _code++;
+                    // readBit(), inlined
+                    if (_curbyte == 1)
+                        _curbyte = _basestream.ReadByte() | 0x100;
+                    if ((_curbyte & 1) != 0)
+                        _code++;
+                    _curbyte >>= 1;
                 }
 
                 // If underflow is imminent, shift it out
@@ -155,7 +160,12 @@ namespace RT.ArithmeticCoding
                     _high = ((_high & 0x7FFF_FFFF) << 1) | 0x8000_0001;
                     _low = (_low << 1) & 0x7FFF_FFFF;
                     _code = ((_code & 0x7FFF_FFFF) ^ 0x4000_0000) << 1;
-                    if (readBit()) _code++;
+                    // readBit(), inlined
+                    if (_curbyte == 1)
+                        _curbyte = _basestream.ReadByte() | 0x100;
+                    if ((_curbyte & 1) != 0)
+                        _code++;
+                    _curbyte >>= 1;
                 }
             }
 
