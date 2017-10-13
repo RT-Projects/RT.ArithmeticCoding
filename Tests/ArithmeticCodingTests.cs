@@ -34,13 +34,11 @@ namespace RT.ArithmeticCoding.Tests
         [TestMethod]
         public void TestBasic()
         {
-            int imprecise = 0;
             for (int i = 0; i < 1000; i++)
-                testBasic(i, ref imprecise);
-            Assert.IsTrue(imprecise <= 279);
+                testBasic(i);
         }
 
-        private void testBasic(int length, ref int imprecise)
+        private void testBasic(int length)
         {
             var freqs = newArray(256, v => 256 - (ulong) v);
             var ms = new MemoryStream();
@@ -59,10 +57,8 @@ namespace RT.ArithmeticCoding.Tests
                 var sym = decoder.ReadSymbol();
                 Assert.AreEqual(i % 256, sym);
             }
-#warning These should be equal but currently the reader will read a different number of bytes than the writer writes
-            Assert.IsTrue(ms.Position >= expectedEnding - 2 && ms.Position <= expectedEnding);
-            if (expectedEnding != ms.Position)
-                imprecise++;
+            decoder.Close(false);
+            Assert.AreEqual(expectedEnding, ms.Position);
         }
 
         [TestMethod]
@@ -122,8 +118,8 @@ namespace RT.ArithmeticCoding.Tests
                     decoder.TweakProbabilities(mainFreqs);
                 }
             }
-#warning TODO: this fails at the moment because the reader reads past what the writer wrote
-            //Assert.AreEqual(-54321, readInt(ms));
+            decoder.Close(false);
+            Assert.AreEqual(-54321, readInt(ms));
         }
     }
 }

@@ -119,7 +119,7 @@ namespace RT.ArithmeticCoding
 
         public override void Close()
         {
-            _basestream.Close();
+            Close(true);
             base.Close();
         }
 
@@ -199,6 +199,26 @@ namespace RT.ArithmeticCoding
             _totalfreq = 0;
             for (int i = 0; i < _freqs.Length; i++)
                 _totalfreq += _freqs[i];
+        }
+
+        public void Close(bool closeBaseStream = true)
+        {
+            if (!_first)
+            {
+                // Expect to see a sequence of 0x51, 0x51, 0x51, 0x50 bytes, with the first 1 to 3 potentially cut off
+                // This sequence is here to guarantee that reader and writer use the same number of bytes. There is no way to use it to detect the last symbol.
+                var b = _basestream.ReadByte();
+                if (b == 0x51)
+                    b = _basestream.ReadByte();
+                if (b == 0x51)
+                    b = _basestream.ReadByte();
+                if (b == 0x51)
+                    b = _basestream.ReadByte();
+                if (b != 0x50)
+                    throw new InvalidOperationException("The stream did not end properly");
+            }
+            if (closeBaseStream)
+                _basestream.Close();
         }
     }
 #pragma warning restore 1591    // Missing XML comment for publicly visible type or member

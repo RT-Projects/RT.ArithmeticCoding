@@ -189,10 +189,12 @@ namespace RT.ArithmeticCoding
                 }
                 if (_curbit != 0)
                     _basestream.WriteByte(_curbyte);
-                // The reader needs to look ahead by a few bytes, so pad the ending with 2 more bytes to keep them in sync
-                _basestream.WriteByte(0);
-                _basestream.WriteByte(0);
-                _basestream.WriteByte(0);
+                // The reader needs to look ahead by a few bytes, so pad the ending to keep them in sync. The reader and the writer
+                // use a slightly different number of bytes so this sequence helps the reader finish in exactly the right place.
+                _basestream.WriteByte(0x51);
+                _basestream.WriteByte(0x51);
+                _basestream.WriteByte(0x51);
+                _basestream.WriteByte(0x50);
             }
             if (closeBaseStream)
                 _basestream.Close();
