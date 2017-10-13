@@ -175,17 +175,18 @@ namespace RT.ArithmeticCoding
                 inc *= 2;
             }
             inc = inc / 2;
+            ulong symbolPos = 0;
             while (inc != 0)
             {
-                if (pos >= _context.GetSymbolPos(symbol + 1))
+                if (pos >= (symbolPos = _context.GetSymbolPos(symbol + 1))) // is symbol higher than current? (and save upper end of pos for current symbol)
                     inc = (inc > 0 ? inc : -inc) / 2;
-                else if (pos < _context.GetSymbolPos(symbol))
+                else if (pos < (symbolPos = symbolPos - _context.GetSymbolFreq(symbol))) // is symbol lower than current? (and save lower end of pos for current symbol)
                     inc = (inc > 0 ? -inc : inc) / 2;
                 else
                     break;
                 symbol += inc;
             }
-            pos = _context.GetSymbolPos(symbol);
+            pos = symbolPos; // we saved lower end of pos for current symbol just before exit
 
             // Set high and low to the new values
             ulong newlow = (_high - _low + 1) * pos / total + _low;
