@@ -155,5 +155,21 @@ namespace RT.ArithmeticCoding.Tests
             decoder.Close(false);
             Assert.AreEqual(5, ms.Position);
         }
+
+        [TestMethod]
+        public void TestArrayContext()
+        {
+            int count = 1000;
+            var ctx = new ArithmeticSymbolArrayContext(count);
+            Assert.AreEqual(0UL, ctx.GetSymbolFreq(-1000));
+            Assert.AreEqual(0UL, ctx.GetSymbolFreq(-1));
+            Assert.AreEqual(1UL, ctx.GetSymbolFreq(0));
+            Assert.AreEqual(1UL, ctx.GetSymbolFreq(1));
+            Assert.AreEqual(0UL, ctx.GetSymbolPos(0));
+            Assert.AreEqual(1UL, ctx.GetSymbolPos(1));
+            Assert.AreEqual(1UL, ctx.GetSymbolFreq(count - 1));
+            Assert.AreEqual(0UL, ctx.GetSymbolFreq(count));
+            Assert.AreEqual(0UL, ctx.GetSymbolFreq(count + 1000));
+        }
     }
 }
