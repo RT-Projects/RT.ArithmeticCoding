@@ -38,7 +38,7 @@ namespace RT.ArithmeticCoding
             _context = context ?? throw new ArgumentNullException(nameof(context));
             _high = 0xFFFF_FFFF;
             _low = 0;
-            _curbyte = 1;
+            _curbyte = 0x10000;
             _code = 0;
         }
 
@@ -114,11 +114,10 @@ namespace RT.ArithmeticCoding
 
         private bool readBit()
         {
-            if (_curbyte == 1)
+            if (_curbyte >= 0x10000)
                 _curbyte = _basestream.ReadByte() | 0x100;
-            bool ret = (_curbyte & 1) != 0;
-            _curbyte >>= 1;
-            return ret;
+            _curbyte <<= 1;
+            return (_curbyte & 0x100) != 0;
         }
 
         /// <summary>
@@ -136,11 +135,10 @@ namespace RT.ArithmeticCoding
 
             if (_first)
             {
-                for (int i = 0; i < 32; i++)
-                {
-                    code <<= 1;
-                    code |= readBit() ? 1UL : 0UL;
-                }
+                code = (uint) _basestream.ReadByte() << 24;
+                code |= (uint) _basestream.ReadByte() << 16;
+                code |= (uint) _basestream.ReadByte() << 8;
+                code |= (uint) _basestream.ReadByte();
                 _first = false;
             }
             else
@@ -151,12 +149,12 @@ namespace RT.ArithmeticCoding
                     high = ((high << 1) & 0xFFFF_FFFF) | 1;
                     low = (low << 1) & 0xFFFF_FFFF;
                     code = (code << 1) & 0xFFFF_FFFF;
-                    // readBit(), inlined
-                    if (curbyte == 1)
+                    // inlined: if (readBit()) code++;
+                    if (curbyte >= 0x10000)
                         curbyte = _basestream.ReadByte() | 0x100;
-                    if ((curbyte & 1) != 0)
+                    curbyte <<= 1;
+                    if ((curbyte & 0x100) != 0)
                         code++;
-                    curbyte >>= 1;
                 }
 
                 // If underflow is imminent, shift it out
@@ -165,12 +163,12 @@ namespace RT.ArithmeticCoding
                     high = ((high & 0x7FFF_FFFF) << 1) | 0x8000_0001;
                     low = (low << 1) & 0x7FFF_FFFF;
                     code = ((code & 0x7FFF_FFFF) ^ 0x4000_0000) << 1;
-                    // readBit(), inlined
-                    if (curbyte == 1)
+                    // inlined: if (readBit()) code++;
+                    if (curbyte >= 0x10000)
                         curbyte = _basestream.ReadByte() | 0x100;
-                    if ((curbyte & 1) != 0)
+                    curbyte <<= 1;
+                    if ((curbyte & 0x100) != 0)
                         code++;
-                    curbyte >>= 1;
                 }
             }
 

@@ -47,6 +47,26 @@ namespace RT.ArithmeticCoding.Tests
         }
 
         [TestMethod]
+        public void TestNormalByteSequence()
+        {
+            // The encoding of bytes under a 0..255 context with equal probability should end up outputting those bytes unchanged
+            var ms = new MemoryStream();
+            var encoder = new ArithmeticCodingWriter(ms, new ArithmeticSymbolArrayContext(256));
+            for (int i = 0; i <= 255; i++)
+                encoder.WriteSymbol(i);
+            encoder.Close(false, false);
+            var result = ms.ToArray();
+            for (int i = 0; i <= 255; i++)
+                Assert.AreEqual(i, result[i]);
+
+            ms = new MemoryStream(result);
+            var decoder = new ArithmeticCodingReader(ms, new ArithmeticSymbolArrayContext(256));
+            for (int i = 0; i <= 255; i++)
+                Assert.AreEqual(i, decoder.ReadSymbol());
+            decoder.Close(false);
+        }
+
+        [TestMethod]
         public void TestBasic()
         {
             for (int i = 0; i < 1000; i++)

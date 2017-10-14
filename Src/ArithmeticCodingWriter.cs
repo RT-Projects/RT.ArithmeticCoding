@@ -40,7 +40,7 @@ namespace RT.ArithmeticCoding
             _context = context ?? throw new ArgumentNullException(nameof(context));
             _high = 0xFFFF_FFFF;
             _low = 0;
-            _curbyte = 0x10000;
+            _curbyte = 1;
             _underflow = 0;
         }
 
@@ -124,25 +124,25 @@ namespace RT.ArithmeticCoding
             while ((high & 0x8000_0000) == (low & 0x8000_0000))
             {
                 // inlined: outputBit((high & 0x8000_0000) != 0);
+                curbyte <<= 1;
                 if ((high & 0x8000_0000) != 0)
-                    curbyte |= 0x100;
-                curbyte >>= 1;
-                if (curbyte < 0x200)
+                    curbyte++;
+                if (curbyte >= 0x100)
                 {
                     _basestream.WriteByte((byte) curbyte);
-                    curbyte = 0x10000;
+                    curbyte = 1;
                 }
 
                 while (underflow > 0)
                 {
                     // inlined: outputBit((high & 0x8000_0000) == 0);
+                    curbyte <<= 1;
                     if ((high & 0x8000_0000) == 0)
-                        curbyte |= 0x100;
-                    curbyte >>= 1;
-                    if (curbyte < 0x200)
+                        curbyte++;
+                    if (curbyte >= 0x100)
                     {
                         _basestream.WriteByte((byte) curbyte);
-                        curbyte = 0x10000;
+                        curbyte = 1;
                     }
 
                     underflow--;
@@ -167,13 +167,13 @@ namespace RT.ArithmeticCoding
 
         private void outputBit(bool p)
         {
+            _curbyte <<= 1;
             if (p)
-                _curbyte |= 0x100;
-            _curbyte >>= 1;
-            if (_curbyte < 0x200)
+                _curbyte++;
+            if (_curbyte >= 0x100)
             {
                 _basestream.WriteByte((byte) _curbyte);
-                _curbyte = 0x10000;
+                _curbyte = 1;
             }
         }
 
@@ -203,10 +203,10 @@ namespace RT.ArithmeticCoding
                     outputBit((_low & 0x4000_0000) == 0);
                     _underflow--;
                 }
-                if (_curbyte != 0x10000)
+                if (_curbyte != 1)
                 {
-                    while (_curbyte >= 0x200)
-                        _curbyte >>= 1;
+                    while (_curbyte < 0x100)
+                        _curbyte <<= 1;
                     _basestream.WriteByte((byte) _curbyte);
                 }
                 // The reader needs to look ahead by a few bytes, so pad the ending to keep them in sync. The reader and the writer
