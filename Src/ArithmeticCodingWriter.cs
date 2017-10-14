@@ -4,36 +4,62 @@ using System.IO;
 namespace RT.ArithmeticCoding
 {
     /// <summary>
-    ///     Provides a write-only stream that can compress data using Arithmetic Coding.</summary>
+    ///     Implements an arithmetic coding encoder. See Remarks.</summary>
+    /// <remarks>
+    ///     <para>
+    ///         The writer accepts a sequence of symbols as inputs via <see cref="WriteSymbol(int)"/>, encodes them and writes
+    ///         the encoded bytes to the specified stream. A symbol is an integer; the same integer will be returned by <see
+    ///         cref="ArithmeticCodingReader.ReadSymbol"/> when the encoded stream is decoded. Symbols are encoded according
+    ///         to the current <see cref="ArithmeticSymbolContext"/>, which describes the relative frequencies of all symbols.</para>
+    ///     <para>
+    ///         Symbols are permitted to have a frequency of zero, but it is illegal to attempt to encode a zero-frequency
+    ///         symbol. The symbol context does not have to remain unchanged; the context may be modified arbitrarily between
+    ///         calls to <see cref="WriteSymbol(int)"/>, and an entirely different context may be applied using <see
+    ///         cref="SetContext"/>. The only requirement is that identical contexts are in place before every <see
+    ///         cref="WriteSymbol"/> call and before its corresponding <see cref="ArithmeticCodingReader.ReadSymbol"/> call.</para>
+    ///     <para>
+    ///         Arithmetic encoding uses fewer bits for more frequent symbols. The number of bits used per symbol is not
+    ///         necessarily an integer, and there is no pre-determined output bit pattern corresponding to a given symbol.
+    ///         Arithmetic coding is not data compression per se; it is an entropy coding algorithm. Arithmetic coding
+    ///         requires an accurate prediction of each symbol's probability to be supplied by the caller in order to be
+    ///         effective, and is only as good as the caller's modelling of the sequence of symbols being passed in.</para></remarks>
     /// <seealso cref="ArithmeticCodingReader"/>
     public class ArithmeticCodingWriter
     {
         private ulong _high, _low;
         private int _underflow;
         private ArithmeticSymbolContext _context;
-        private Stream _basestream;
+        private Stream _stream;
         private int _curbyte;
         private bool _anyWrites = false;
 
         /// <summary>
-        ///     Initialises an <see cref="ArithmeticCodingWriter"/> instance given a base stream and a set of byte
-        ///     frequencies.</summary>
-        /// <param name="basestr">
-        ///     The base stream to which the compressed data will be written.</param>
+        ///     Initialises an <see cref="ArithmeticCodingWriter"/> instance. See Remarks.</summary>
+        /// <param name="stream">
+        ///     The stream to which the encoded data will be written.</param>
         /// <param name="frequencies">
-        ///     The frequency of each byte occurring. Can be null, in which case all bytes are assumed to have the same
-        ///     frequency. When reading the data back using an <see cref="ArithmeticCodingReader"/>, the set of frequencies
-        ///     must be exactly the same.</param>
+        ///     The frequency of each symbol occurring. When reading the data back using an <see
+        ///     cref="ArithmeticCodingReader"/>, the set of frequencies must be exactly the same.</param>
         /// <remarks>
-        ///     The compressed data will not be complete until the stream is closed using <see cref="Close()"/>.</remarks>
-        public ArithmeticCodingWriter(Stream basestr, ulong[] frequencies)
-            : this(basestr, frequencies == null ? new ArithmeticSymbolArrayContext(257) : new ArithmeticSymbolArrayContext(frequencies))
+        ///     The encoded data will not be complete until the writer is finalized using <see cref="Finalize"/>.</remarks>
+        public ArithmeticCodingWriter(Stream stream, ulong[] frequencies)
+            : this(stream, new ArithmeticSymbolArrayContext(frequencies ?? throw new ArgumentNullException(nameof(frequencies))))
         {
         }
 
-        public ArithmeticCodingWriter(Stream basestr, ArithmeticSymbolContext context)
+        /// <summary>
+        ///     Initialises an <see cref="ArithmeticCodingWriter"/> instance. See Remarks.</summary>
+        /// <param name="stream">
+        ///     The stream to which the encoded data will be written.</param>
+        /// <param name="context">
+        ///     The context used for determining the relative frequencies of encoded symbols. The caller may make changes to
+        ///     the context instance it passed in; such changes will take effect immediately. See also <see
+        ///     cref="SetContext"/>.</param>
+        /// <remarks>
+        ///     The encoded data will not be complete until the writer is finalized using <see cref="Finalize"/>.</remarks>
+        public ArithmeticCodingWriter(Stream stream, ArithmeticSymbolContext context)
         {
-            _basestream = basestr ?? throw new ArgumentNullException(nameof(basestr));
+            _stream = stream ?? throw new ArgumentNullException(nameof(stream));
             _context = context ?? throw new ArgumentNullException(nameof(context));
             _high = 0xFFFF_FFFF;
             _low = 0;
@@ -42,15 +68,16 @@ namespace RT.ArithmeticCoding
         }
 
         /// <summary>
-        ///     Writes a single symbol. Use this if you are not using bytes as your symbol alphabet.</summary>
-        /// <param name="p">
-        ///     Symbol to write. Must be an integer between 0 and the length of the frequencies array passed in the
-        ///     constructor.</param>
-        public void WriteSymbol(int p)
+        ///     Encodes a single symbol.</summary>
+        /// <param name="symbol">
+        ///     Symbol to write. Must be a non-negative integer with a non-zero frequency in the current context.</param>
+        public void WriteSymbol(int symbol)
         {
+            if (_context == null)
+                throw new InvalidOperationException("The writer has already been finalized; no further symbol writes are permitted.");
             ulong total = _context.GetTotal();
-            ulong symbolFreq = _context.GetSymbolFreq(p);
-            ulong symbolPos = _context.GetSymbolPos(p);
+            ulong symbolFreq = _context.GetSymbolFreq(symbol);
+            ulong symbolPos = _context.GetSymbolPos(symbol);
             if (symbolFreq == 0)
                 throw new ArgumentException("Attempt to encode a symbol with zero frequency");
             if (symbolPos + symbolFreq > total)
@@ -77,7 +104,7 @@ namespace RT.ArithmeticCoding
                     curbyte++;
                 if (curbyte >= 0x100)
                 {
-                    _basestream.WriteByte((byte) curbyte);
+                    _stream.WriteByte((byte) curbyte);
                     curbyte = 1;
                 }
 
@@ -89,7 +116,7 @@ namespace RT.ArithmeticCoding
                         curbyte++;
                     if (curbyte >= 0x100)
                     {
-                        _basestream.WriteByte((byte) curbyte);
+                        _stream.WriteByte((byte) curbyte);
                         curbyte = 1;
                     }
 
@@ -120,16 +147,17 @@ namespace RT.ArithmeticCoding
                 _curbyte++;
             if (_curbyte >= 0x100)
             {
-                _basestream.WriteByte((byte) _curbyte);
+                _stream.WriteByte((byte) _curbyte);
                 _curbyte = 1;
             }
         }
 
         /// <summary>
-        ///     Closes the stream, optionally writing an end-of-stream symbol first. The end-of-stream symbol has the numeric
-        ///     value 257, which is useful only if you have 256 symbols or fewer. If you intend to use a larger symbol
-        ///     alphabet, write your own end-of-stream symbol and then invoke Close(false).</summary>
-        public void Close(bool closeBaseStream = false)
+        ///     Finalizes the stream by flushing any remaining buffered data and writing the synchronization padding required
+        ///     by the reader. This call is mandatory; the stream will not be readable in full if this method is not called.</summary>
+        /// <param name="closeStream">
+        ///     Specifies whether the output stream should be closed. Optional; defaults to <c>false</c>.</param>
+        public void Finalize(bool closeStream = false)
         {
             if (_anyWrites)
             {
@@ -144,25 +172,32 @@ namespace RT.ArithmeticCoding
                 {
                     while (_curbyte < 0x100)
                         _curbyte <<= 1;
-                    _basestream.WriteByte((byte) _curbyte);
+                    _stream.WriteByte((byte) _curbyte);
                 }
                 // The reader needs to look ahead by a few bytes, so pad the ending to keep them in sync. The reader and the writer
                 // use a slightly different number of bytes so this sequence helps the reader finish in exactly the right place.
-                _basestream.WriteByte(0x51);
-                _basestream.WriteByte(0x51);
-                _basestream.WriteByte(0x51);
-                _basestream.WriteByte(0x50);
+                _stream.WriteByte(0x51);
+                _stream.WriteByte(0x51);
+                _stream.WriteByte(0x51);
+                _stream.WriteByte(0x50);
             }
-            if (closeBaseStream)
-                _basestream.Close();
+            if (closeStream)
+                _stream.Close();
+            _context = null; // prevent further symbol writes
         }
 
         /// <summary>
-        ///     Changes the frequencies of the symbols. This can be used at any point in the middle of encoding, as long as
-        ///     the same change is made at the same time when decoding using <see cref="ArithmeticCodingReader"/>.</summary>
-        /// <param name="newFreqs"/>
+        ///     Changes the symbol context. See Remarks.</summary>
+        /// <remarks>
+        ///     The context instance may be modified after it's been applied by <see cref="SetContext"/> (or in the initial
+        ///     constructor call) with immediate effect. It is not necessary to call this method after modifying an already
+        ///     applied context. Symbol contexts may be changed arbitrarily between calls to <see cref="WriteSymbol"/>, as
+        ///     long as the same changes are made during decoding between calls to <see
+        ///     cref="ArithmeticCodingReader.ReadSymbol"/>.</remarks>
         public void SetContext(ArithmeticSymbolContext context)
         {
+            if (_context == null)
+                throw new InvalidOperationException("The writer has already been finalized; no further context changes are permitted.");
             _context = context;
         }
     }

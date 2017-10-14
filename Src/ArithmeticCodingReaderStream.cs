@@ -85,7 +85,7 @@ namespace RT.ArithmeticCoding
 
         public void Close(bool closeBaseStream = true)
         {
-            _reader.Close(closeBaseStream);
+            _reader.Finalize(closeBaseStream);
         }
     }
 }

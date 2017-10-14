@@ -54,7 +54,7 @@ namespace RT.ArithmeticCoding.Tests
             var encoder = new ArithmeticCodingWriter(ms, new ArithmeticSymbolArrayContext(256));
             for (int i = 0; i <= 255; i++)
                 encoder.WriteSymbol(i);
-            encoder.Close(false);
+            encoder.Finalize(false);
             var result = ms.ToArray();
             for (int i = 0; i <= 255; i++)
                 Assert.AreEqual(i, result[i]);
@@ -63,7 +63,7 @@ namespace RT.ArithmeticCoding.Tests
             var decoder = new ArithmeticCodingReader(ms, new ArithmeticSymbolArrayContext(256));
             for (int i = 0; i <= 255; i++)
                 Assert.AreEqual(i, decoder.ReadSymbol());
-            decoder.Close(false);
+            decoder.Finalize(false);
         }
 
         [TestMethod]
@@ -80,7 +80,7 @@ namespace RT.ArithmeticCoding.Tests
             var encoder = new ArithmeticCodingWriter(ms, freqs);
             for (int i = 0; i < length; i++)
                 encoder.WriteSymbol(i % 256);
-            encoder.Close(false);
+            encoder.Finalize(false);
             var expectedEnding = ms.Position;
             ms.Write(new byte[32], 0, 32);
             var bytes = ms.ToArray();
@@ -92,7 +92,7 @@ namespace RT.ArithmeticCoding.Tests
                 var sym = decoder.ReadSymbol();
                 Assert.AreEqual(i % 256, sym);
             }
-            decoder.Close(false);
+            decoder.Finalize(false);
             Assert.AreEqual(expectedEnding, ms.Position);
         }
 
@@ -126,7 +126,7 @@ namespace RT.ArithmeticCoding.Tests
                     encoder.SetContext(mainContext);
                 }
             }
-            encoder.Close(false);
+            encoder.Finalize(false);
             writeInt(ms, -54321); // to verify that the stream ends where we think it ends
             var encoded = ms.ToArray();
 
@@ -153,7 +153,7 @@ namespace RT.ArithmeticCoding.Tests
                     decoder.SetContext(mainContext);
                 }
             }
-            decoder.Close(false);
+            decoder.Finalize(false);
             Assert.AreEqual(-54321, readInt(ms));
         }
 
@@ -165,14 +165,14 @@ namespace RT.ArithmeticCoding.Tests
             var encoder = new ArithmeticCodingWriter(ms, freqs);
             for (int i = 0; i < 100; i++)
                 encoder.WriteSymbol(0);
-            encoder.Close(false);
+            encoder.Finalize(false);
             Assert.AreEqual(5, ms.Position);
 
             ms = new MemoryStream(ms.ToArray());
             var decoder = new ArithmeticCodingReader(ms, freqs);
             for (int i = 0; i < 100; i++)
                 Assert.AreEqual(0, decoder.ReadSymbol());
-            decoder.Close(false);
+            decoder.Finalize(false);
             Assert.AreEqual(5, ms.Position);
         }
 

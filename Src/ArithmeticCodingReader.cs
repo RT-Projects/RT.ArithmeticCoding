@@ -139,7 +139,7 @@ namespace RT.ArithmeticCoding
             _context = context;
         }
 
-        public void Close(bool closeBaseStream = false)
+        public void Finalize(bool closeBaseStream = false)
         {
             if (!_first)
             {

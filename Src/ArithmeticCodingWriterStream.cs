@@ -73,7 +73,7 @@ namespace RT.ArithmeticCoding
         {
             if (writeEndOfStreamSymbol)
                 _writer.WriteSymbol(END_OF_STREAM);
-            _writer.Close(closeBaseStream);
+            _writer.Finalize(closeBaseStream);
             base.Close();
         }
 
