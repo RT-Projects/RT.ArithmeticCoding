@@ -33,7 +33,9 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="ArithmeticCodingReader.cs" />
+    <Compile Include="ArithmeticCodingReaderStream.cs" />
     <Compile Include="ArithmeticCodingWriter.cs" />
+    <Compile Include="ArithmeticCodingWriterStream.cs" />
     <Compile Include="ArithmeticSymbolContext.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>

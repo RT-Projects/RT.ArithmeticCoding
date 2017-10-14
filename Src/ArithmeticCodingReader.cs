@@ -6,17 +6,13 @@ namespace RT.ArithmeticCoding
     /// <summary>
     ///     Provides a read-only stream that can decompress data that was compressed using Arithmetic Coding.</summary>
     /// <seealso cref="ArithmeticCodingWriter"/>
-    public sealed class ArithmeticCodingReader : Stream
+    public class ArithmeticCodingReader
     {
         private ulong _high, _low, _code;
         private ArithmeticSymbolContext _context;
         private Stream _basestream;
         private int _curbyte;
-        private bool _ended = false;
         private bool _first = true;
-
-        /// <summary>Encapsulates a symbol that represents the end of the stream. All other symbols are byte values.</summary>
-        public const int END_OF_STREAM = 256;
 
         /// <summary>
         ///     Initialises an <see cref="ArithmeticCodingReader"/> instance given a base stream and a set of byte
@@ -40,76 +36,6 @@ namespace RT.ArithmeticCoding
             _low = 0;
             _curbyte = 0x10000;
             _code = 0;
-        }
-
-#pragma warning disable 1591    // Missing XML comment for publicly visible type or member
-
-        public override bool CanRead { get { return true; } }
-        public override bool CanSeek { get { return false; } }
-        public override bool CanWrite { get { return false; } }
-
-        public override void Flush()
-        {
-            _basestream.Flush();
-        }
-
-        public override long Length
-        {
-            get { throw new Exception("The method or operation is not implemented."); }
-        }
-
-        public override long Position
-        {
-            get
-            {
-                throw new Exception("The method or operation is not implemented.");
-            }
-            set
-            {
-                throw new Exception("The method or operation is not implemented.");
-            }
-        }
-
-        public override int Read(byte[] buffer, int offset, int count)
-        {
-            if (_ended)
-                return 0;
-            for (int i = 0; i < count; i++)
-            {
-                int symbol = ReadSymbol();
-                if (symbol == END_OF_STREAM)
-                    return i;
-                else
-                    buffer[offset + i] = (byte) symbol;
-            }
-            return count;
-        }
-
-        public override int ReadByte()
-        {
-            int symbol = ReadSymbol();
-            return symbol == END_OF_STREAM ? -1 : symbol;
-        }
-
-        public override long Seek(long offset, SeekOrigin origin)
-        {
-            throw new Exception("The method or operation is not implemented.");
-        }
-
-        public override void SetLength(long value)
-        {
-            throw new Exception("The method or operation is not implemented.");
-        }
-
-        public override void Write(byte[] buffer, int offset, int count)
-        {
-            throw new Exception("The method or operation is not implemented.");
-        }
-
-        public override void Close()
-        {
-            Close(true);
-            base.Close();
         }
 
         private bool readBit()
@@ -200,9 +126,6 @@ namespace RT.ArithmeticCoding
             high = (high - low + 1) * (pos + _context.GetSymbolFreq(symbol)) / total + low - 1;
             low = newlow;
 
-            if (symbol == END_OF_STREAM)
-                _ended = true;
-
             _high = high;
             _low = low;
             _code = code;
@@ -216,7 +139,7 @@ namespace RT.ArithmeticCoding
             _context = context;
         }
 
-        public void Close(bool closeBaseStream = true)
+        public void Close(bool closeBaseStream = false)
         {
             if (!_first)
             {
@@ -236,5 +159,4 @@ namespace RT.ArithmeticCoding
                 _basestream.Close();
         }
     }
-#pragma warning restore 1591    // Missing XML comment for publicly visible type or member
 }
