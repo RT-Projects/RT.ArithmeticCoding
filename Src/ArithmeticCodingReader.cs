@@ -47,12 +47,16 @@ namespace RT.ArithmeticCoding
             _code = 0;
         }
 
-        private bool readBit()
+        /// <summary>
+        ///     Changes the symbol context. See Remarks.</summary>
+        /// <remarks>
+        ///     The context instance may be modified after it's been applied by <see cref="SetContext"/> (or in the initial
+        ///     constructor call) with immediate effect. It is not necessary to call this method after modifying a context
+        ///     that's already been set using this method. Symbol context changes during reading must match exactly those made
+        ///     during writing.</remarks>
+        public void SetContext(ArithmeticSymbolContext context)
         {
-            if (_curbyte >= 0x10000)
-                _curbyte = _stream.ReadByte() | 0x100;
-            _curbyte <<= 1;
-            return (_curbyte & 0x100) != 0;
+            _context = context;
         }
 
         /// <summary>Decodes a single symbol.</summary>
@@ -141,18 +145,6 @@ namespace RT.ArithmeticCoding
         }
 
         /// <summary>
-        ///     Changes the symbol context. See Remarks.</summary>
-        /// <remarks>
-        ///     The context instance may be modified after it's been applied by <see cref="SetContext"/> (or in the initial
-        ///     constructor call) with immediate effect. It is not necessary to call this method after modifying a context
-        ///     that's already been set using this method. Symbol context changes during reading must match exactly those made
-        ///     during writing.</remarks>
-        public void SetContext(ArithmeticSymbolContext context)
-        {
-            _context = context;
-        }
-
-        /// <summary>
         ///     Finalizes the stream by reading synchronization padding appended by the writer. This call is optional; it is
         ///     only required if further data will be read from the same input stream.</summary>
         /// <param name="closeStream">
@@ -175,6 +167,14 @@ namespace RT.ArithmeticCoding
             }
             if (closeStream)
                 _stream.Close();
+        }
+
+        private bool readBit()
+        {
+            if (_curbyte >= 0x10000)
+                _curbyte = _stream.ReadByte() | 0x100;
+            _curbyte <<= 1;
+            return (_curbyte & 0x100) != 0;
         }
     }
 }

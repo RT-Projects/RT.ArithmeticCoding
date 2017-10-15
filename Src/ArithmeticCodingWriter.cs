@@ -78,6 +78,21 @@ namespace RT.ArithmeticCoding
         }
 
         /// <summary>
+        ///     Changes the symbol context. See Remarks.</summary>
+        /// <remarks>
+        ///     The context instance may be modified after it's been applied by <see cref="SetContext"/> (or in the initial
+        ///     constructor call) with immediate effect. It is not necessary to call this method after modifying an already
+        ///     applied context. Symbol contexts may be changed arbitrarily between calls to <see cref="WriteSymbol"/>, as
+        ///     long as the same changes are made during decoding between calls to <see
+        ///     cref="ArithmeticCodingReader.ReadSymbol"/>.</remarks>
+        public void SetContext(ArithmeticSymbolContext context)
+        {
+            if (_context == null)
+                throw new InvalidOperationException("The writer has already been finalized; no further context changes are permitted.");
+            _context = context;
+        }
+
+        /// <summary>
         ///     Encodes a single symbol.</summary>
         /// <param name="symbol">
         ///     Symbol to write. Must be a non-negative integer with a non-zero frequency in the current context.</param>
@@ -150,18 +165,6 @@ namespace RT.ArithmeticCoding
             _underflow = underflow;
         }
 
-        private void outputBit(bool p)
-        {
-            _curbyte <<= 1;
-            if (p)
-                _curbyte++;
-            if (_curbyte >= 0x100)
-            {
-                _stream.WriteByte((byte) _curbyte);
-                _curbyte = 1;
-            }
-        }
-
         /// <summary>
         ///     Finalizes the stream by flushing any remaining buffered data and writing the synchronization padding required
         ///     by the reader. This call is mandatory; the stream will not be readable in full if this method is not called.
@@ -198,19 +201,16 @@ namespace RT.ArithmeticCoding
             _context = null; // prevent further symbol writes
         }
 
-        /// <summary>
-        ///     Changes the symbol context. See Remarks.</summary>
-        /// <remarks>
-        ///     The context instance may be modified after it's been applied by <see cref="SetContext"/> (or in the initial
-        ///     constructor call) with immediate effect. It is not necessary to call this method after modifying an already
-        ///     applied context. Symbol contexts may be changed arbitrarily between calls to <see cref="WriteSymbol"/>, as
-        ///     long as the same changes are made during decoding between calls to <see
-        ///     cref="ArithmeticCodingReader.ReadSymbol"/>.</remarks>
-        public void SetContext(ArithmeticSymbolContext context)
+        private void outputBit(bool p)
         {
-            if (_context == null)
-                throw new InvalidOperationException("The writer has already been finalized; no further context changes are permitted.");
-            _context = context;
+            _curbyte <<= 1;
+            if (p)
+                _curbyte++;
+            if (_curbyte >= 0x100)
+            {
+                _stream.WriteByte((byte) _curbyte);
+                _curbyte = 1;
+            }
         }
     }
 }
