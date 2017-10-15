@@ -4,33 +4,42 @@ using System.IO;
 namespace RT.ArithmeticCoding
 {
     /// <summary>
-    ///     Provides a read-only stream that can decompress data that was compressed using Arithmetic Coding.</summary>
+    ///     Implements an arithmetic coding decoder. See <see cref="ArithmeticCodingWriter"/> for further details.</summary>
     /// <seealso cref="ArithmeticCodingWriter"/>
+    /// <seealso cref="ArithmeticCodingReaderStream"/>
     public class ArithmeticCodingReader
     {
         private ulong _high, _low, _code;
         private ArithmeticSymbolContext _context;
-        private Stream _basestream;
+        private Stream _stream;
         private int _curbyte;
         private bool _first = true;
 
         /// <summary>
-        ///     Initialises an <see cref="ArithmeticCodingReader"/> instance given a base stream and a set of byte
-        ///     frequencies.</summary>
-        /// <param name="basestr">
-        ///     The base stream to which the compressed data will be written.</param>
+        ///     Initialises an <see cref="ArithmeticCodingReader"/> instance. See <see cref="ArithmeticCodingWriter"/> for
+        ///     further details.</summary>
+        /// <param name="stream">
+        ///     The stream from which the encoded data will be read for decoding.</param>
         /// <param name="frequencies">
-        ///     The frequency of each byte occurring. Can be null, in which case all bytes are assumed to have the same
-        ///     frequency. The set of frequencies must be exactly the same as the one used when the data was written using
-        ///     <see cref="ArithmeticCodingWriter"/>.</param>
-        public ArithmeticCodingReader(Stream basestr, ulong[] frequencies)
-            : this(basestr, frequencies == null ? new ArithmeticSymbolArrayContext(257) : new ArithmeticSymbolArrayContext(frequencies))
+        ///     The frequency of each symbol occurring. Must match the frequencies used by <see
+        ///     cref="ArithmeticCodingWriter"/> for encoding the data.</param>
+        public ArithmeticCodingReader(Stream stream, ulong[] frequencies)
+            : this(stream, new ArithmeticSymbolArrayContext(frequencies ?? throw new ArgumentNullException(nameof(frequencies))))
         {
         }
 
-        public ArithmeticCodingReader(Stream basestr, ArithmeticSymbolContext context)
+        /// <summary>
+        ///     Initialises an <see cref="ArithmeticCodingReader"/> instance. See <see cref="ArithmeticCodingWriter"/> for
+        ///     further details.</summary>
+        /// <param name="stream">
+        ///     The stream from which the encoded data will be read for decoding.</param>
+        /// <param name="context">
+        ///     The context used for determining the relative frequencies of encoded symbols. The caller may make changes to
+        ///     the context instance it passed in; such changes will take effect immediately. See also <see
+        ///     cref="SetContext"/>.</param>
+        public ArithmeticCodingReader(Stream stream, ArithmeticSymbolContext context)
         {
-            _basestream = basestr ?? throw new ArgumentNullException(nameof(basestr));
+            _stream = stream ?? throw new ArgumentNullException(nameof(stream));
             _context = context ?? throw new ArgumentNullException(nameof(context));
             _high = 0xFFFF_FFFF;
             _low = 0;
@@ -41,15 +50,12 @@ namespace RT.ArithmeticCoding
         private bool readBit()
         {
             if (_curbyte >= 0x10000)
-                _curbyte = _basestream.ReadByte() | 0x100;
+                _curbyte = _stream.ReadByte() | 0x100;
             _curbyte <<= 1;
             return (_curbyte & 0x100) != 0;
         }
 
-        /// <summary>
-        ///     Reads a single symbol. Use this if you are not using bytes as your symbol alphabet.</summary>
-        /// <returns>
-        ///     Symbol read.</returns>
+        /// <summary>Decodes a single symbol.</summary>
         public int ReadSymbol()
         {
             ulong high = _high;
@@ -61,10 +67,10 @@ namespace RT.ArithmeticCoding
 
             if (_first)
             {
-                code = (uint) _basestream.ReadByte() << 24;
-                code |= (uint) _basestream.ReadByte() << 16;
-                code |= (uint) _basestream.ReadByte() << 8;
-                code |= (uint) _basestream.ReadByte();
+                code = (uint) _stream.ReadByte() << 24;
+                code |= (uint) _stream.ReadByte() << 16;
+                code |= (uint) _stream.ReadByte() << 8;
+                code |= (uint) _stream.ReadByte();
                 _first = false;
             }
             else
@@ -77,7 +83,7 @@ namespace RT.ArithmeticCoding
                     code = (code << 1) & 0xFFFF_FFFF;
                     // inlined: if (readBit()) code++;
                     if (curbyte >= 0x10000)
-                        curbyte = _basestream.ReadByte() | 0x100;
+                        curbyte = _stream.ReadByte() | 0x100;
                     curbyte <<= 1;
                     if ((curbyte & 0x100) != 0)
                         code++;
@@ -91,7 +97,7 @@ namespace RT.ArithmeticCoding
                     code = ((code & 0x7FFF_FFFF) ^ 0x4000_0000) << 1;
                     // inlined: if (readBit()) code++;
                     if (curbyte >= 0x10000)
-                        curbyte = _basestream.ReadByte() | 0x100;
+                        curbyte = _stream.ReadByte() | 0x100;
                     curbyte <<= 1;
                     if ((curbyte & 0x100) != 0)
                         code++;
@@ -134,29 +140,41 @@ namespace RT.ArithmeticCoding
             return symbol;
         }
 
+        /// <summary>
+        ///     Changes the symbol context. See Remarks.</summary>
+        /// <remarks>
+        ///     The context instance may be modified after it's been applied by <see cref="SetContext"/> (or in the initial
+        ///     constructor call) with immediate effect. It is not necessary to call this method after modifying a context
+        ///     that's already been set using this method. Symbol context changes during reading must match exactly those made
+        ///     during writing.</remarks>
         public void SetContext(ArithmeticSymbolContext context)
         {
             _context = context;
         }
 
-        public void Finalize(bool closeBaseStream = false)
+        /// <summary>
+        ///     Finalizes the stream by reading synchronization padding appended by the writer. This call is optional; it is
+        ///     only required if further data will be read from the same input stream.</summary>
+        /// <param name="closeStream">
+        ///     Specifies whether the input stream should be closed. Optional; defaults to <c>false</c>.</param>
+        public void Finalize(bool closeStream = false)
         {
             if (!_first)
             {
                 // Expect to see a sequence of 0x51, 0x51, 0x51, 0x50 bytes, with the first 1 to 3 potentially cut off
                 // This sequence is here to guarantee that reader and writer use the same number of bytes. There is no way to use it to detect the last symbol.
-                var b = _basestream.ReadByte();
+                var b = _stream.ReadByte();
                 if (b == 0x51)
-                    b = _basestream.ReadByte();
+                    b = _stream.ReadByte();
                 if (b == 0x51)
-                    b = _basestream.ReadByte();
+                    b = _stream.ReadByte();
                 if (b == 0x51)
-                    b = _basestream.ReadByte();
+                    b = _stream.ReadByte();
                 if (b != 0x50)
                     throw new InvalidOperationException("The stream did not end properly");
             }
-            if (closeBaseStream)
-                _basestream.Close();
+            if (closeStream)
+                _stream.Close();
         }
     }
 }

@@ -18,12 +18,22 @@ namespace RT.ArithmeticCoding
     ///         cref="SetContext"/>. The only requirement is that identical contexts are in place before every <see
     ///         cref="WriteSymbol"/> call and before its corresponding <see cref="ArithmeticCodingReader.ReadSymbol"/> call.</para>
     ///     <para>
+    ///         This class does not offer any built-in means for the reader to detect the last symbol written. The caller must
+    ///         know when to stop calling <see cref="ArithmeticCodingReader.ReadSymbol"/>. Where this cannot be deduced from
+    ///         context, you can dedicate an extra symbol (with a suitable frequency) to mark end of stream, or write total
+    ///         symbol count to the stream separately.</para>
+    ///     <para>
+    ///         The reader and the writer support operation on a stream which has other data before and/or after the
+    ///         arithmetic-coded section. The reader's <see cref="ArithmeticCodingReader.Finalize"/> method ensures that the
+    ///         input stream is left with exactly the correct number of bytes consumed.</para>
+    ///     <para>
     ///         Arithmetic encoding uses fewer bits for more frequent symbols. The number of bits used per symbol is not
     ///         necessarily an integer, and there is no pre-determined output bit pattern corresponding to a given symbol.
     ///         Arithmetic coding is not data compression per se; it is an entropy coding algorithm. Arithmetic coding
     ///         requires an accurate prediction of each symbol's probability to be supplied by the caller in order to be
     ///         effective, and is only as good as the caller's modelling of the sequence of symbols being passed in.</para></remarks>
     /// <seealso cref="ArithmeticCodingReader"/>
+    /// <seealso cref="ArithmeticCodingWriterStream"/>
     public class ArithmeticCodingWriter
     {
         private ulong _high, _low;
@@ -154,7 +164,9 @@ namespace RT.ArithmeticCoding
 
         /// <summary>
         ///     Finalizes the stream by flushing any remaining buffered data and writing the synchronization padding required
-        ///     by the reader. This call is mandatory; the stream will not be readable in full if this method is not called.</summary>
+        ///     by the reader. This call is mandatory; the stream will not be readable in full if this method is not called.
+        ///     This method does not write enough information to the stream for the reader to detect that there are no further
+        ///     symbols; see Remarks on <see cref="ArithmeticCodingWriter"/> for further info.</summary>
         /// <param name="closeStream">
         ///     Specifies whether the output stream should be closed. Optional; defaults to <c>false</c>.</param>
         public void Finalize(bool closeStream = false)
