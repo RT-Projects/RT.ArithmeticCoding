@@ -67,7 +67,40 @@ namespace RT.ArithmeticCoding.Tests
         }
 
         [TestMethod]
-        public void TestBasic()
+        public void TestBasic1()
+        {
+            var freqs = new ulong[] { 10, 30, 10 }; // Symbol 0 occurs 10x, symbol 1 occurs 30x, symbol 2 occurs 10x
+            var ms = new MemoryStream();
+            var context = new ArithmeticSymbolArrayContext(freqs);
+            var encoder = new ArithmeticCodingWriter(ms, context);
+
+            for (int i = 0; i < 10; i++)
+            {
+                encoder.WriteSymbol(1);
+                encoder.WriteSymbol(0);
+                encoder.WriteSymbol(1);
+                encoder.WriteSymbol(2);
+                encoder.WriteSymbol(1);
+            }
+            encoder.Finalize();
+            ms.WriteByte(47);
+
+            ms = new MemoryStream(ms.ToArray());
+            var decoder = new ArithmeticCodingReader(ms, context);
+            for (int i = 0; i < 10; i++)
+            {
+                Assert.AreEqual(1, decoder.ReadSymbol());
+                Assert.AreEqual(0, decoder.ReadSymbol());
+                Assert.AreEqual(1, decoder.ReadSymbol());
+                Assert.AreEqual(2, decoder.ReadSymbol());
+                Assert.AreEqual(1, decoder.ReadSymbol());
+            }
+            decoder.Finalize();
+            Assert.AreEqual(47, ms.ReadByte());
+        }
+
+        [TestMethod]
+        public void TestBasic2()
         {
             for (int i = 0; i < 1000; i++)
                 testBasic(i);
