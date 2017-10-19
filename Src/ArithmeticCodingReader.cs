@@ -153,17 +153,28 @@ namespace RT.ArithmeticCoding
         {
             if (!_first)
             {
-                // Expect to see a sequence of 0x51, 0x51, 0x51, 0x50 bytes, with the first 1 to 3 potentially cut off
+                // Transfer the remainder of curbyte into code
+                while (_curbyte < 0x10000)
+                {
+                    _code = (_code << 1) & 0xFFFF_FFFF;
+                    _curbyte <<= 1;
+                    if ((_curbyte & 0x100) != 0)
+                        _code++;
+                }
+                // Expect to see a sequence of 0x51, 0x51, 0x51, 0x50 bytes, of which up to all 4 might have been read into _code already.
                 // This sequence is here to guarantee that reader and writer use the same number of bytes. There is no way to use it to detect the last symbol.
-                var b = _stream.ReadByte();
-                if (b == 0x51)
-                    b = _stream.ReadByte();
-                if (b == 0x51)
-                    b = _stream.ReadByte();
-                if (b == 0x51)
-                    b = _stream.ReadByte();
-                if (b != 0x50)
-                    throw new InvalidOperationException("The stream did not end properly");
+                if (_code != 0x51515150)
+                {
+                    var b = _stream.ReadByte();
+                    if (b == 0x51)
+                        b = _stream.ReadByte();
+                    if (b == 0x51)
+                        b = _stream.ReadByte();
+                    if (b == 0x51)
+                        b = _stream.ReadByte();
+                    if (b != 0x50)
+                        throw new InvalidOperationException("The stream did not end properly");
+                }
             }
             if (closeStream)
                 _stream.Close();

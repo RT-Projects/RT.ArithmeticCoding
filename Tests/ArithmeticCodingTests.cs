@@ -130,6 +130,33 @@ namespace RT.ArithmeticCoding.Tests
         }
 
         [TestMethod]
+        public void TestRandom()
+        {
+            var rnd = new Random(468);
+            for (int t = 0; t < 2000; t++)
+            {
+                var freqs = newArray(rnd.Next(1, 300), _ => (ulong) rnd.Next(1, 500));
+                var symbols = newArray(rnd.Next(0, 1000), _ => (ulong) rnd.Next(0, freqs.Length)).Select(e => (int) e).ToArray();
+                var ms = new MemoryStream();
+                var encoder = new ArithmeticCodingWriter(ms, freqs);
+                for (int i = 0; i < symbols.Length; i++)
+                    encoder.WriteSymbol(symbols[i]);
+                encoder.Finalize();
+                var expectedEnding = ms.Position;
+                ms.WriteByte(47);
+                var bytes = ms.ToArray();
+
+                ms = new MemoryStream(bytes);
+                var decoder = new ArithmeticCodingReader(ms, freqs);
+                for (int i = 0; i < symbols.Length; i++)
+                    Assert.AreEqual(symbols[i], decoder.ReadSymbol());
+                decoder.Finalize();
+                Assert.AreEqual(expectedEnding, ms.Position);
+                Assert.AreEqual(47, ms.ReadByte());
+            }
+        }
+
+        [TestMethod]
         public void TestAdvanced()
         {
             _rnd = new Random(12345);
