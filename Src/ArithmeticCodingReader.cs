@@ -165,15 +165,13 @@ namespace RT.ArithmeticCoding
                 // This sequence is here to guarantee that reader and writer use the same number of bytes. There is no way to use it to detect the last symbol.
                 if (_code != 0x51515150)
                 {
-                    var b = _stream.ReadByte();
-                    if (b == 0x51)
-                        b = _stream.ReadByte();
-                    if (b == 0x51)
-                        b = _stream.ReadByte();
-                    if (b == 0x51)
-                        b = _stream.ReadByte();
-                    if (b != 0x50)
-                        throw new InvalidOperationException("The stream did not end properly");
+                    for (int i = 0; i < 5; i++)
+                    {
+                        if (_stream.ReadByte() == 0x50)
+                            break;
+                        if (i == 4)
+                            throw new InvalidOperationException("The stream did not end properly");
+                    }
                 }
             }
             if (closeStream)

@@ -251,5 +251,40 @@ namespace RT.ArithmeticCoding.Tests
             Assert.AreEqual(0UL, ctx.GetSymbolFreq(count));
             Assert.AreEqual(0UL, ctx.GetSymbolFreq(count + 1000));
         }
+
+        [TestMethod]
+        public void TestExtremeProbabilities()
+        {
+            for (int t = 0; t < 2; t++)
+            {
+                var freq = t == 0 ? new[] { 1UL, 0xFFFF_FFFEul } : new[] { 0xFFFF_FFFEul, 1UL };
+                testExtremeProbs(freq, new[] { 0 });
+                testExtremeProbs(freq, new[] { 1 });
+                testExtremeProbs(freq, new[] { 0, 0 });
+                testExtremeProbs(freq, new[] { 0, 1 });
+                testExtremeProbs(freq, new[] { 1, 0 });
+                testExtremeProbs(freq, new[] { 1, 1 });
+            }
+        }
+
+        private static void testExtremeProbs(ulong[] freqs, int[] symbols)
+        {
+            var ms = new MemoryStream();
+            var encoder = new ArithmeticCodingWriter(ms, freqs);
+            foreach (var symbol in symbols)
+                encoder.WriteSymbol(symbol);
+            encoder.Finalize();
+            var expectedEnding = ms.Position;
+            ms.WriteByte(47);
+            var bytes = ms.ToArray();
+
+            ms = new MemoryStream(bytes);
+            var decoder = new ArithmeticCodingReader(ms, freqs);
+            for (int i = 0; i < symbols.Length; i++)
+                Assert.AreEqual(symbols[i], decoder.ReadSymbol());
+            decoder.Finalize();
+            Assert.AreEqual(expectedEnding, ms.Position);
+            Assert.AreEqual(47, ms.ReadByte());
+        }
     }
 }
