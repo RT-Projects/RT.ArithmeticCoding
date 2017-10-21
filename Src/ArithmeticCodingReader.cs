@@ -113,7 +113,7 @@ namespace RT.ArithmeticCoding
             // Do a binary search of sorts to locate the symbol
             int symbol = 0;
             int inc = 1;
-            while (pos >= _context.GetSymbolPos(symbol + 1))
+            while (pos >= _context.GetSymbolPosition(symbol + 1))
             {
                 symbol += inc;
                 inc *= 2;
@@ -121,19 +121,19 @@ namespace RT.ArithmeticCoding
             inc = inc / 2;
             while (inc != 0)
             {
-                if (pos >= _context.GetSymbolPos(symbol + 1))
+                if (pos >= _context.GetSymbolPosition(symbol + 1))
                     inc = (inc > 0 ? inc : -inc) / 2;
-                else if (pos < _context.GetSymbolPos(symbol))
+                else if (pos < _context.GetSymbolPosition(symbol))
                     inc = (inc > 0 ? -inc : inc) / 2;
                 else
                     break;
                 symbol += inc;
             }
-            pos = _context.GetSymbolPos(symbol);
+            pos = _context.GetSymbolPosition(symbol);
 
             // Set high and low to the new values
             ulong newlow = (high - low + 1) * pos / total + low;
-            high = (high - low + 1) * (pos + _context.GetSymbolFreq(symbol)) / total + low - 1;
+            high = (high - low + 1) * (pos + _context.GetSymbolFrequency(symbol)) / total + low - 1;
             low = newlow;
 
             _high = high;

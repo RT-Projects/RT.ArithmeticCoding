@@ -101,8 +101,8 @@ namespace RT.ArithmeticCoding
             if (_context == null)
                 throw new InvalidOperationException("The writer has already been finalized; no further symbol writes are permitted.");
             ulong total = _context.GetTotal();
-            ulong symbolFreq = _context.GetSymbolFreq(symbol);
-            ulong symbolPos = _context.GetSymbolPos(symbol);
+            ulong symbolFreq = _context.GetSymbolFrequency(symbol);
+            ulong symbolPos = _context.GetSymbolPosition(symbol);
             if (symbolFreq == 0)
                 throw new ArgumentException("Attempt to encode a symbol with zero frequency");
             if (symbolPos + symbolFreq > total)

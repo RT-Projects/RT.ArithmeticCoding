@@ -7,17 +7,17 @@ namespace RT.ArithmeticCoding
     {
         /// <summary>
         ///     Returns the sum of all symbol frequencies. When overridden, must equal exactly the sum of <see
-        ///     cref="GetSymbolFreq"/> over all possible symbols.</summary>
+        ///     cref="GetSymbolFrequency"/> over all possible symbols.</summary>
         public abstract uint GetTotal();
         /// <summary>
         ///     Returns the frequency of the specified symbol. When overridden, must return a value for every possible input;
         ///     return 0 if the symbol is out of the range of possible symbols.</summary>
-        public abstract uint GetSymbolFreq(int symbol);
+        public abstract uint GetSymbolFrequency(int symbol);
         /// <summary>
         ///     Returns the sum of the frequencies of all symbols less than <paramref name="symbol"/>. When overridden, must
         ///     return a value for every possible input: 0 for all symbols less than the first valid symbol, and a value equal
         ///     to <see cref="GetTotal"/> for all symbols greater than the last valid symbol.</summary>
-        public abstract uint GetSymbolPos(int symbol);
+        public abstract uint GetSymbolPosition(int symbol);
 
         /// <summary>
         ///     The maximum sum of all symbol frequencies. The encoder/decoder can overflow if the sum of all frequencies
@@ -78,7 +78,7 @@ namespace RT.ArithmeticCoding
         }
 
         /// <summary>Returns the sum of the frequencies of all symbols less than <paramref name="symbol"/>.</summary>
-        public override uint GetSymbolPos(int symbol)
+        public override uint GetSymbolPosition(int symbol)
         {
             if (symbol < 0)
                 return 0;
@@ -99,7 +99,7 @@ namespace RT.ArithmeticCoding
         }
 
         /// <summary>Returns the frequency of the specified symbol.</summary>
-        public override uint GetSymbolFreq(int symbol)
+        public override uint GetSymbolFrequency(int symbol)
         {
             if (symbol < 0 || symbol >= _frequencies.Length)
                 return 0;

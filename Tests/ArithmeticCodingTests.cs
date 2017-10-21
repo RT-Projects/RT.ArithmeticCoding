@@ -241,15 +241,15 @@ namespace RT.ArithmeticCoding.Tests
         {
             int count = 1000;
             var ctx = new ArithmeticSymbolArrayContext(count);
-            Assert.AreEqual(0UL, ctx.GetSymbolFreq(-1000));
-            Assert.AreEqual(0UL, ctx.GetSymbolFreq(-1));
-            Assert.AreEqual(1UL, ctx.GetSymbolFreq(0));
-            Assert.AreEqual(1UL, ctx.GetSymbolFreq(1));
-            Assert.AreEqual(0UL, ctx.GetSymbolPos(0));
-            Assert.AreEqual(1UL, ctx.GetSymbolPos(1));
-            Assert.AreEqual(1UL, ctx.GetSymbolFreq(count - 1));
-            Assert.AreEqual(0UL, ctx.GetSymbolFreq(count));
-            Assert.AreEqual(0UL, ctx.GetSymbolFreq(count + 1000));
+            Assert.AreEqual(0UL, ctx.GetSymbolFrequency(-1000));
+            Assert.AreEqual(0UL, ctx.GetSymbolFrequency(-1));
+            Assert.AreEqual(1UL, ctx.GetSymbolFrequency(0));
+            Assert.AreEqual(1UL, ctx.GetSymbolFrequency(1));
+            Assert.AreEqual(0UL, ctx.GetSymbolPosition(0));
+            Assert.AreEqual(1UL, ctx.GetSymbolPosition(1));
+            Assert.AreEqual(1UL, ctx.GetSymbolFrequency(count - 1));
+            Assert.AreEqual(0UL, ctx.GetSymbolFrequency(count));
+            Assert.AreEqual(0UL, ctx.GetSymbolFrequency(count + 1000));
         }
 
         [TestMethod]
