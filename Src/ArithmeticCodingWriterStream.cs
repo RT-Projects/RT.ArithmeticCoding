@@ -23,7 +23,7 @@ namespace RT.ArithmeticCoding
         ///     cref="ArithmeticCodingReaderStream"/>, the set of frequencies must be exactly the same.</param>
         /// <remarks>
         ///     The encoded data will not be complete until the stream is closed using <see cref="Close()"/>.</remarks>
-        public ArithmeticCodingWriterStream(Stream outputStream, ulong[] frequencies)
+        public ArithmeticCodingWriterStream(Stream outputStream, uint[] frequencies)
             : this(outputStream, new ArithmeticSymbolArrayContext(frequencies))
         {
             if (frequencies.Length != 257)

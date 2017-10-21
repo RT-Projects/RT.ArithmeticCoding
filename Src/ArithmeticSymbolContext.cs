@@ -8,16 +8,21 @@ namespace RT.ArithmeticCoding
         /// <summary>
         ///     Returns the sum of all symbol frequencies. When overridden, must equal exactly the sum of <see
         ///     cref="GetSymbolFreq"/> over all possible symbols.</summary>
-        public abstract ulong GetTotal();
+        public abstract uint GetTotal();
         /// <summary>
         ///     Returns the frequency of the specified symbol. When overridden, must return a value for every possible input;
         ///     return 0 if the symbol is out of the range of possible symbols.</summary>
-        public abstract ulong GetSymbolFreq(int symbol);
+        public abstract uint GetSymbolFreq(int symbol);
         /// <summary>
         ///     Returns the sum of the frequencies of all symbols less than <paramref name="symbol"/>. When overridden, must
         ///     return a value for every possible input: 0 for all symbols less than the first valid symbol, and a value equal
         ///     to <see cref="GetTotal"/> for all symbols greater than the last valid symbol.</summary>
-        public abstract ulong GetSymbolPos(int symbol);
+        public abstract uint GetSymbolPos(int symbol);
+
+        /// <summary>
+        ///     The maximum sum of all symbol frequencies. The encoder/decoder can overflow if the sum of all frequencies
+        ///     exceeds this value.</summary>
+        public const uint MaxTotal = 0x8000_0000;
     }
 
     /// <summary>
@@ -26,9 +31,9 @@ namespace RT.ArithmeticCoding
     ///     the largest valid symbol.</summary>
     public class ArithmeticSymbolArrayContext : ArithmeticSymbolContext
     {
-        private ulong[] _frequencies;
-        private ulong[] _positions;
-        private ulong _total;
+        private uint[] _frequencies;
+        private uint[] _positions;
+        private uint _total;
         private int _positionsValidUntil;
 
         /// <summary>
@@ -39,18 +44,20 @@ namespace RT.ArithmeticCoding
         /// <param name="initializer">
         ///     A function which returns the initial value for each symbol's frequency. Optional; if omitted, every symbol
         ///     starts with a frequency of 1.</param>
-        public ArithmeticSymbolArrayContext(int length, Func<int, ulong> initializer = null)
+        public ArithmeticSymbolArrayContext(int length, Func<int, uint> initializer = null)
         {
-            initializer = initializer ?? (_ => 1UL);
-            _frequencies = new ulong[length];
-            _positions = new ulong[length];
+            initializer = initializer ?? (_ => 1U);
+            _frequencies = new uint[length];
+            _positions = new uint[length];
             _positionsValidUntil = -1;
             _total = 0;
             for (int i = 0; i < length; i++)
             {
                 _frequencies[i] = initializer(i);
-                _total += _frequencies[i];
+                _total = checked(_total + _frequencies[i]);
             }
+            if (_total > MaxTotal)
+                throw new OverflowException($"The total of all frequencies must not exceed {nameof(ArithmeticSymbolContext)}.{nameof(MaxTotal)} ({MaxTotal:#,0})");
         }
 
         /// <summary>
@@ -58,17 +65,20 @@ namespace RT.ArithmeticCoding
         /// <param name="frequencies">
         ///     Initial frequencies of all symbols. The length of this array determines the maximum representable symbol; all
         ///     other symbols have a frequency of 0.</param>
-        public ArithmeticSymbolArrayContext(ulong[] frequencies)
+        public ArithmeticSymbolArrayContext(uint[] frequencies)
         {
             _frequencies = frequencies;
-            _positions = new ulong[frequencies.Length];
+            _positions = new uint[frequencies.Length];
             _positionsValidUntil = -1;
             _total = 0;
             for (int i = 0; i < _frequencies.Length; i++)
-                _total += _frequencies[i];
+                _total = checked(_total + _frequencies[i]);
+            if (_total > MaxTotal)
+                throw new OverflowException($"The total of all frequencies must not exceed {nameof(ArithmeticSymbolContext)}.{nameof(MaxTotal)} ({MaxTotal:#,0})");
         }
+
         /// <summary>Returns the sum of the frequencies of all symbols less than <paramref name="symbol"/>.</summary>
-        public override ulong GetSymbolPos(int symbol)
+        public override uint GetSymbolPos(int symbol)
         {
             if (symbol < 0)
                 return 0;
@@ -78,7 +88,7 @@ namespace RT.ArithmeticCoding
             if (_positionsValidUntil >= symbol)
                 return _positions[symbol];
 
-            ulong pos = _positionsValidUntil < 0 ? 0 : (_positions[_positionsValidUntil] + _frequencies[_positionsValidUntil]);
+            uint pos = _positionsValidUntil < 0 ? 0 : (_positions[_positionsValidUntil] + _frequencies[_positionsValidUntil]);
             for (int i = _positionsValidUntil + 1; i <= symbol; i++)
             {
                 _positions[i] = pos;
@@ -89,7 +99,7 @@ namespace RT.ArithmeticCoding
         }
 
         /// <summary>Returns the frequency of the specified symbol.</summary>
-        public override ulong GetSymbolFreq(int symbol)
+        public override uint GetSymbolFreq(int symbol)
         {
             if (symbol < 0 || symbol >= _frequencies.Length)
                 return 0;
@@ -97,52 +107,58 @@ namespace RT.ArithmeticCoding
         }
 
         /// <summary>Returns the sum of all symbol frequencies.</summary>
-        public override ulong GetTotal()
+        public override uint GetTotal()
         {
             return _total;
         }
 
         /// <summary>
         ///     Updates the frequencies of all symbols. Use this method to update a large number of frequencies. Use <see
-        ///     cref="SetSymbolFrequency(int, ulong)"/> to update a small number of frequencies more efficiently.</summary>
+        ///     cref="SetSymbolFrequency(int, uint)"/> to update a small number of frequencies more efficiently.</summary>
         /// <param name="updater">
         ///     A method which receives the current array of symbol frequencies. This method can modify the array arbitrarily,
         ///     but cannot replace it with an entirely new array. To change the length of the frequencies array, see <see
-        ///     cref="UpdateFrequencies(Func{ulong[], ulong[]})"/>.</param>
-        public void UpdateFrequencies(Action<ulong[]> updater)
+        ///     cref="UpdateFrequencies(Func{uint[], uint[]})"/>.</param>
+        public void UpdateFrequencies(Action<uint[]> updater)
         {
             updater(_frequencies);
             _total = 0;
             for (int i = 0; i < _frequencies.Length; i++)
-                _total += _frequencies[i];
+                _total = checked(_total + _frequencies[i]);
+            if (_total > MaxTotal)
+                throw new OverflowException($"The total of all frequencies must not exceed {nameof(ArithmeticSymbolContext)}.{nameof(MaxTotal)} ({MaxTotal:#,0})");
             _positionsValidUntil = -1;
         }
 
         /// <summary>
         ///     Updates the frequencies of all symbols. Use this method to update a large number of frequencies. Use <see
-        ///     cref="SetSymbolFrequency(int, ulong)"/> to update a small number of frequencies more efficiently.</summary>
+        ///     cref="SetSymbolFrequency(int, uint)"/> to update a small number of frequencies more efficiently.</summary>
         /// <param name="updater">
         ///     A function which receives the current array of symbol frequencies. This function can modify the array
         ///     arbitrarily and return it, or construct and return an entirely different array.</param>
-        public void UpdateFrequencies(Func<ulong[], ulong[]> updater)
+        public void UpdateFrequencies(Func<uint[], uint[]> updater)
         {
             _frequencies = updater(_frequencies);
             _total = 0;
             for (int i = 0; i < _frequencies.Length; i++)
-                _total += _frequencies[i];
+                _total = checked(_total + _frequencies[i]);
+            if (_total > MaxTotal)
+                throw new OverflowException($"The total of all frequencies must not exceed {nameof(ArithmeticSymbolContext)}.{nameof(MaxTotal)} ({MaxTotal:#,0})");
             _positionsValidUntil = -1;
         }
 
         /// <summary>
         ///     Updates the frequency of the specified symbol. To update a large number of frequencies in one go more
-        ///     efficiently, use <see cref="UpdateFrequencies(Action{ulong[]})"/>.</summary>
-        public void SetSymbolFrequency(int symbol, ulong newFrequency)
+        ///     efficiently, use <see cref="UpdateFrequencies(Action{uint[]})"/>.</summary>
+        public void SetSymbolFrequency(int symbol, uint newFrequency)
         {
             if (symbol < 0 || symbol >= _frequencies.Length)
                 throw new ArgumentOutOfRangeException(nameof(symbol), "Symbol is out of range.");
-            var oldProbability = _frequencies[symbol];
+            var oldFrequency = _frequencies[symbol];
             _frequencies[symbol] = newFrequency;
-            _total = _total - oldProbability + newFrequency;
+            _total = checked(_total - oldFrequency + newFrequency);
+            if (_total > MaxTotal)
+                throw new OverflowException($"The total of all frequencies must not exceed {nameof(ArithmeticSymbolContext)}.{nameof(MaxTotal)} ({MaxTotal:#,0})");
             _positionsValidUntil = symbol;
         }
 
@@ -159,9 +175,9 @@ namespace RT.ArithmeticCoding
                 throw new ArgumentOutOfRangeException(nameof(symbol), "Symbol is out of range.");
             if (incrementBy == 0)
                 return;
-            if (incrementBy < 0 && _frequencies[symbol] < (ulong) -incrementBy)
+            if (incrementBy < 0 && _frequencies[symbol] < (uint) -incrementBy)
                 throw new ArgumentException($"Symbol {symbol} has a probability of {_frequencies[symbol]}; decrementing it by {-incrementBy} would make it less than 0.");
-            SetSymbolFrequency(symbol, incrementBy > 0 ? (_frequencies[symbol] + (uint) incrementBy) : (_frequencies[symbol] - (uint) (-incrementBy)));
+            SetSymbolFrequency(symbol, checked(incrementBy > 0 ? (_frequencies[symbol] + (uint) incrementBy) : (_frequencies[symbol] - (uint) (-incrementBy))));
         }
     }
 }

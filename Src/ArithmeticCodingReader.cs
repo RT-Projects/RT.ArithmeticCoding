@@ -23,7 +23,7 @@ namespace RT.ArithmeticCoding
         /// <param name="frequencies">
         ///     The frequency of each symbol occurring. Must match the frequencies used by <see
         ///     cref="ArithmeticCodingWriter"/> for encoding the data.</param>
-        public ArithmeticCodingReader(Stream stream, ulong[] frequencies)
+        public ArithmeticCodingReader(Stream stream, uint[] frequencies)
             : this(stream, new ArithmeticSymbolArrayContext(frequencies ?? throw new ArgumentNullException(nameof(frequencies))))
         {
         }

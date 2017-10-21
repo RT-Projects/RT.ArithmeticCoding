@@ -20,7 +20,7 @@ namespace RT.ArithmeticCoding
         ///     The frequency of each byte occurring, plus the frequency of the end of stream symbol (written automatically
         ///     when the stream is closed). Must be 257 elements long. The set of frequencies must be exactly the same as the
         ///     one used when the data was written using <see cref="ArithmeticCodingWriterStream"/>.</param>
-        public ArithmeticCodingReaderStream(Stream inputStream, ulong[] frequencies)
+        public ArithmeticCodingReaderStream(Stream inputStream, uint[] frequencies)
             : this(inputStream, new ArithmeticSymbolArrayContext(frequencies))
         {
             if (frequencies.Length != 257)

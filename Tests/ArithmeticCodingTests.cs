@@ -11,9 +11,9 @@ namespace RT.ArithmeticCoding.Tests
     {
         private Random _rnd = new Random();
 
-        private ulong[] newArray(int length, Func<int, ulong> initial)
+        private uint[] newArray(int length, Func<int, uint> initial)
         {
-            var result = new ulong[length];
+            var result = new uint[length];
             for (int i = 0; i < length; i++)
                 result[i] = initial(i);
             return result;
@@ -69,7 +69,7 @@ namespace RT.ArithmeticCoding.Tests
         [TestMethod]
         public void TestBasic1()
         {
-            var freqs = new ulong[] { 10, 30, 10 }; // Symbol 0 occurs 10x, symbol 1 occurs 30x, symbol 2 occurs 10x
+            var freqs = new uint[] { 10, 30, 10 }; // Symbol 0 occurs 10x, symbol 1 occurs 30x, symbol 2 occurs 10x
             var ms = new MemoryStream();
             var context = new ArithmeticSymbolArrayContext(freqs);
             var encoder = new ArithmeticCodingWriter(ms, context);
@@ -108,7 +108,7 @@ namespace RT.ArithmeticCoding.Tests
 
         private void testBasic(int length)
         {
-            var freqs = newArray(256, v => 256 - (ulong) v);
+            var freqs = newArray(256, v => 256 - (uint) v);
             var ms = new MemoryStream();
             var encoder = new ArithmeticCodingWriter(ms, freqs);
             for (int i = 0; i < length; i++)
@@ -135,8 +135,8 @@ namespace RT.ArithmeticCoding.Tests
             var rnd = new Random(468);
             for (int t = 0; t < 2000; t++)
             {
-                var freqs = newArray(rnd.Next(1, 300), _ => (ulong) rnd.Next(1, 500));
-                var symbols = newArray(rnd.Next(0, 1000), _ => (ulong) rnd.Next(0, freqs.Length)).Select(e => (int) e).ToArray();
+                var freqs = newArray(rnd.Next(1, 300), _ => (uint) rnd.Next(1, 500));
+                var symbols = newArray(rnd.Next(0, 1000), _ => (uint) rnd.Next(0, freqs.Length)).Select(e => (int) e).ToArray();
                 var ms = new MemoryStream();
                 var encoder = new ArithmeticCodingWriter(ms, freqs);
                 for (int i = 0; i < symbols.Length; i++)
@@ -164,7 +164,7 @@ namespace RT.ArithmeticCoding.Tests
             var symbols = Enumerable.Range(1, 100_000).Select(_ => _rnd.Next(0, max)).ToArray();
 
             var mainContext = new ArithmeticSymbolArrayContext(max, _ => 1);
-            var secondaryContext = new ArithmeticSymbolArrayContext(new ulong[] { 3, 2, 1 });
+            var secondaryContext = new ArithmeticSymbolArrayContext(new uint[] { 3, 2, 1 });
 
             var ms = new MemoryStream();
             var encoder = new ArithmeticCodingWriter(ms, mainContext);
@@ -220,7 +220,7 @@ namespace RT.ArithmeticCoding.Tests
         [TestMethod]
         public void TestSingleSymbol()
         {
-            var freqs = new ulong[] { 1 };
+            var freqs = new uint[] { 1 };
             var ms = new MemoryStream();
             var encoder = new ArithmeticCodingWriter(ms, freqs);
             for (int i = 0; i < 100; i++)
@@ -261,17 +261,17 @@ namespace RT.ArithmeticCoding.Tests
             // A 100 billion long sequence has been tested manually but takes far too long for a unit test (encoded: FF FF FF FF FF FD 21 DB A1 79 + sync padding)
 
             // Maximum frequency vs first failure at 1's count:
-            // 0xFFFF_FFFEul: 2
-            // 0xFFFF_FFF0ul: 16
-            // 0xFFFF_FF00ul: 256
-            // 0xFFFF_F000ul: 4096
-            // 0xFFFF_0000ul: 65536
-            // 0xF000_0000ul: 268,435,455
-            // 0x8000_0001ul: 2,147,483,647
-            // 0x8000_0000ul: correct to at least 2.2 billion
-            // 0x7FFF_FFFFul: correct to at least 100 billion
+            // 0xFFFF_FFFE: 2
+            // 0xFFFF_FFF0: 16
+            // 0xFFFF_FF00: 256
+            // 0xFFFF_F000: 4096
+            // 0xFFFF_0000: 65536
+            // 0xF000_0000: 268,435,455
+            // 0x8000_0001: 2,147,483,647
+            // 0x8000_0000: correct to at least 2.2 billion
+            // 0x7FFF_FFFF: correct to at least 100 billion
 
-            var freqs = new[] { 1ul, 0x7FFF_FFFFul };
+            var freqs = new[] { 1u, ArithmeticSymbolContext.MaxTotal - 1 };
             int count = 0;
             while (true)
             {
@@ -308,13 +308,13 @@ namespace RT.ArithmeticCoding.Tests
         [TestMethod]
         public void TestExtremeProbabilities2()
         {
-            ulong maxTotal = 0xFFFF_FFF4ul;
+            uint maxTotal = ArithmeticSymbolContext.MaxTotal;
             var rnd = new Random(123);
             for (int symbolCount = 2; symbolCount < 8; symbolCount++)
             {
                 for (int commonSym = 0; commonSym < symbolCount; commonSym++)
                 {
-                    var freq = newArray(symbolCount, i => i == commonSym ? maxTotal - (uint) symbolCount + 1 : 1ul);
+                    var freq = newArray(symbolCount, i => i == commonSym ? maxTotal - (uint) symbolCount + 1 : 1u);
                     var uncommonSyms = Enumerable.Range(0, symbolCount).Where(s => s != commonSym).ToArray();
                     for (int length = 1; length < 9 - symbolCount; length++)
                     {
@@ -327,7 +327,7 @@ namespace RT.ArithmeticCoding.Tests
             }
         }
 
-        private static void testExtremeProbs(ulong[] freqs, int[] symbols)
+        private static void testExtremeProbs(uint[] freqs, int[] symbols)
         {
             var ms = new MemoryStream();
             var encoder = new ArithmeticCodingWriter(ms, freqs);
