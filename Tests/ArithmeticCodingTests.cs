@@ -253,17 +253,70 @@ namespace RT.ArithmeticCoding.Tests
         }
 
         [TestMethod]
-        public void TestExtremeProbabilities()
+        public void TestExtremeProbabilities1()
         {
-            for (int t = 0; t < 2; t++)
+            // This test encodes and decodes a sequence of N 1's, followed by a single 0, where the frequency of 1 is extremely high and the frequency of 0 is 1 (minimal).
+            // For very large frequencies, the encoder overflows after a certain number of 1's.
+            // Maximum frequency vs first failure at 1's count:
+            // 0xFFFF_FFFEul: 2
+            // 0xFFFF_FFF0ul: 16
+            // 0xFFFF_FF00ul: 256
+            // 0xFFFF_F000ul: 4096
+            // 0xFFFF_0000ul: 65536
+            // This test verifies correct operation for all sequences of length 1..1000, then goes up in bigger increments until a sequence of ~10 million 1's.
+            var freqs = new[] { 1ul, 0x7FFF_FFFFul };
+            int count = 0;
+            while (true)
             {
-                var freq = t == 0 ? new[] { 1UL, 0xFFFF_FFFEul } : new[] { 0xFFFF_FFFEul, 1UL };
-                testExtremeProbs(freq, new[] { 0 });
-                testExtremeProbs(freq, new[] { 1 });
-                testExtremeProbs(freq, new[] { 0, 0 });
-                testExtremeProbs(freq, new[] { 0, 1 });
-                testExtremeProbs(freq, new[] { 1, 0 });
-                testExtremeProbs(freq, new[] { 1, 1 });
+                var ms = new MemoryStream();
+                var encoder = new ArithmeticCodingWriter(ms, freqs);
+                for (int i = 0; i < count; i++)
+                    encoder.WriteSymbol(1);
+                encoder.WriteSymbol(0);
+                encoder.Finalize();
+                var expectedEnding = ms.Position;
+                ms.WriteByte(47);
+                var bytes = ms.ToArray();
+
+                ms = new MemoryStream(bytes);
+                var decoder = new ArithmeticCodingReader(ms, freqs);
+                for (int i = 0; i < count; i++)
+                    Assert.AreEqual(1, decoder.ReadSymbol());
+                Assert.AreEqual(0, decoder.ReadSymbol());
+                decoder.Finalize();
+                Assert.AreEqual(expectedEnding, ms.Position);
+                Assert.AreEqual(47, ms.ReadByte());
+
+                if (count < 1000)
+                    count++;
+                else if (count < 10_000)
+                    count += 997;
+                else if (count < 100_000)
+                    count = 9_999_991;
+                else
+                    break;
+            }
+        }
+
+        [TestMethod]
+        public void TestExtremeProbabilities2()
+        {
+            ulong maxTotal = 0xFFFF_FFF4ul;
+            var rnd = new Random(123);
+            for (int symbolCount = 2; symbolCount < 8; symbolCount++)
+            {
+                for (int commonSym = 0; commonSym < symbolCount; commonSym++)
+                {
+                    var freq = newArray(symbolCount, i => i == commonSym ? maxTotal - (uint) symbolCount + 1 : 1ul);
+                    var uncommonSyms = Enumerable.Range(0, symbolCount).Where(s => s != commonSym).ToArray();
+                    for (int length = 1; length < 9 - symbolCount; length++)
+                    {
+                        for (int pattern = 0; pattern < Math.Pow(symbolCount, length); pattern++)
+                        {
+                            testExtremeProbs(freq, Enumerable.Range(0, length).Select(p => (pattern & (1 << p)) == 0 ? commonSym : uncommonSyms[rnd.Next(uncommonSyms.Length)]).ToArray());
+                        }
+                    }
+                }
             }
         }
 
