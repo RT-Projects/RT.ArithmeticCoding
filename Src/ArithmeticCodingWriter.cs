@@ -116,18 +116,11 @@ namespace RT.ArithmeticCoding
             _anyWrites = true;
 
             // Set high and low to the new values
-#if DEBUG
-            checked
-#endif
-            {
-                ulong newlow = (high - low + 1) * symbolPos / total + low;
-                high = (high - low + 1) * (symbolPos + symbolFreq) / total + low - 1;
-                low = newlow;
-            }
-#if DEBUG
+            ulong newlow = checked((high - low + 1) * symbolPos / total + low);
+            high = checked((high - low + 1) * (symbolPos + symbolFreq) / total + low - 1);
+            low = newlow;
             if (high < low)
                 throw new OverflowException();
-#endif
 
             // While most significant bits match, shift them out and output them
             while ((high & 0x8000_0000) == (low & 0x8000_0000))
@@ -158,10 +151,8 @@ namespace RT.ArithmeticCoding
                 }
                 high = ((high << 1) & 0xFFFF_FFFF) | 1;
                 low = (low << 1) & 0xFFFF_FFFF;
-#if DEBUG
                 if (high < low)
                     throw new OverflowException();
-#endif
             }
 
             // If underflow is imminent, shift it out
@@ -171,10 +162,8 @@ namespace RT.ArithmeticCoding
                 high = ((high & 0x7FFF_FFFF) << 1) | 0x8000_0001;
                 low = (low << 1) & 0x7FFF_FFFF;
             }
-#if DEBUG
             if (high < low)
                 throw new OverflowException();
-#endif
 
             _high = high;
             _low = low;
