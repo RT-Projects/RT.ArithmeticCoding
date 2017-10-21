@@ -109,7 +109,13 @@ namespace RT.ArithmeticCoding
             }
 
             // Find out what the next symbol is from the contents of 'code'
-            ulong pos = ((code - low + 1) * total - 1) / (high - low + 1);
+            ulong pos;
+#if DEBUG
+            checked
+#endif
+            {
+                pos = ((code - low + 1) * total - 1) / (high - low + 1);
+            }
             // Do a binary search of sorts to locate the symbol
             int symbol = 0;
             int inc = 1;

@@ -257,13 +257,20 @@ namespace RT.ArithmeticCoding.Tests
         {
             // This test encodes and decodes a sequence of N 1's, followed by a single 0, where the frequency of 1 is extremely high and the frequency of 0 is 1 (minimal).
             // For very large frequencies, the encoder overflows after a certain number of 1's.
+            // This test verifies correct operation for all sequences of length 1..1000, then goes up in bigger increments until a sequence of ~10 million 1's.
+            // A 100 billion long sequence has been tested manually but takes far too long for a unit test (encoded: FF FF FF FF FF FD 21 DB A1 79 + sync padding)
+
             // Maximum frequency vs first failure at 1's count:
             // 0xFFFF_FFFEul: 2
             // 0xFFFF_FFF0ul: 16
             // 0xFFFF_FF00ul: 256
             // 0xFFFF_F000ul: 4096
             // 0xFFFF_0000ul: 65536
-            // This test verifies correct operation for all sequences of length 1..1000, then goes up in bigger increments until a sequence of ~10 million 1's.
+            // 0xF000_0000ul: 268,435,455
+            // 0x8000_0001ul: 2,147,483,647
+            // 0x8000_0000ul: correct to at least 2.2 billion
+            // 0x7FFF_FFFFul: correct to at least 100 billion
+
             var freqs = new[] { 1ul, 0x7FFF_FFFFul };
             int count = 0;
             while (true)
