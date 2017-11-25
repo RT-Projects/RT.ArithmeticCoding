@@ -159,7 +159,8 @@ namespace RT.ArithmeticCoding
             _total = checked(_total - oldFrequency + newFrequency);
             if (_total > MaxTotal)
                 throw new OverflowException($"The total of all frequencies must not exceed {nameof(ArithmeticSymbolContext)}.{nameof(MaxTotal)} ({MaxTotal:#,0})");
-            _positionsValidUntil = symbol;
+            if (_positionsValidUntil > symbol)
+                _positionsValidUntil = symbol;
         }
 
         /// <summary>

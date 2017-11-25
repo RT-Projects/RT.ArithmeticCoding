@@ -250,6 +250,11 @@ namespace RT.ArithmeticCoding.Tests
             Assert.AreEqual(1UL, ctx.GetSymbolFrequency(count - 1));
             Assert.AreEqual(0UL, ctx.GetSymbolFrequency(count));
             Assert.AreEqual(0UL, ctx.GetSymbolFrequency(count + 1000));
+
+            ctx = new ArithmeticSymbolArrayContext(new uint[] { 1, 1, 1, 1 });
+            ctx.SetSymbolFrequency(1, 5);
+            ctx.SetSymbolFrequency(3, 5);
+            Assert.AreEqual(6UL, ctx.GetSymbolPosition(2));
         }
 
         [TestMethod]
