@@ -1,11 +1,11 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 15
-VisualStudioVersion = 15.0.26730.16
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.29201.188
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RT.ArithmeticCoding", "Src\RT.ArithmeticCoding.csproj", "{97A2ACA3-7755-4BC0-9D0D-68CFE34E82B8}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "RT.ArithmeticCoding", "Src\RT.ArithmeticCoding.csproj", "{97A2ACA3-7755-4BC0-9D0D-68CFE34E82B8}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RT.ArithmeticCoding.Tests", "Tests\RT.ArithmeticCoding.Tests.csproj", "{4526E337-4B5B-49A2-B016-FA6C32BA09EC}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "RT.ArithmeticCoding.Tests", "Tests\RT.ArithmeticCoding.Tests.csproj", "{4526E337-4B5B-49A2-B016-FA6C32BA09EC}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
