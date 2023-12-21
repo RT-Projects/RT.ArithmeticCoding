@@ -13,6 +13,7 @@
     <Description>Implements an arithmetic coding encoder and decoder with support for adaptive symbol context.</Description>
     <PackageTags>rt;arithmetic;entropy;coding</PackageTags>
     <RepositoryUrl>https://github.com/RT-Projects/RT.ArithmeticCoding/</RepositoryUrl>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
   </PropertyGroup>
 
 </Project>
