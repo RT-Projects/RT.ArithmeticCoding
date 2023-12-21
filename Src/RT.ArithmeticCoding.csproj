@@ -1,15 +1,16 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>netstandard2.0</TargetFramework>
-    <OutputPath>..\Builds\$(Configuration)-$(TargetFramework)$(RuntimeIdentifier)\</OutputPath>
-    <IntermediateOutputPath>$(BaseIntermediateOutputPath)\$(Configuration)-$(TargetFramework)$(RuntimeIdentifier)\</IntermediateOutputPath>
+    <TargetFrameworks>netstandard2.0;net8.0</TargetFrameworks>
     <DocumentationFile>$(OutputPath)\$(AssemblyName).xml</DocumentationFile>
+    <IsAotCompatible Condition="$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net8.0'))">true</IsAotCompatible>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <IncludeSymbols>true</IncludeSymbols>
 
-    <Version>1.0.0.9999</Version>
     <Authors>Timwi;rstarkov</Authors>
     <Description>Implements an arithmetic coding encoder and decoder with support for adaptive symbol context.</Description>
     <PackageTags>rt;arithmetic;entropy;coding</PackageTags>
+    <RepositoryUrl>https://github.com/RT-Projects/RT.ArithmeticCoding/</RepositoryUrl>
   </PropertyGroup>
 
 </Project>
